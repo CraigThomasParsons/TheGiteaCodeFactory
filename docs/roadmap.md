@@ -79,8 +79,14 @@ These were checked against the current tools (September 2026):
 |---|---|---|
 | **Claude Code** | The [status line](https://code.claude.com/docs/en/statusline) receives `rate_limits.five_hour` and `rate_limits.seven_day`, each with `used_percentage` and `resets_at`. Only for Pro/Max subscribers, only in interactive sessions, and only after the first response. | The [`StopFailure` hook](https://code.claude.com/docs/en/hooks) fires when a turn ends on an API error; its matcher can select `rate_limit`. |
 | **Codex CLI** | Session logs under `~/.codex/sessions/` record `rate_limits.primary` (the 5-hour window) and `secondary`, each with `used_percent` and `resets_at`, in `token_count` events. Some older `codex exec --json` versions [emitted `null` here](https://github.com/openai/codex/issues/14728). | The same logs record `rate_limit_reached_type`; the process also exits with an error. |
+| **Grok Build** | None found. Its per-session `signals.json` tracks context-window use and error counts, not account usage. | No error-type hook: its hooks cover tool calls and session start/end only. Errors must be parsed from headless `--output-format json` output (not yet tested against a real limit). |
+| **Mammouth Code** | None found; the quota policy mentions no way to check remaining quota. | Built on opencode, which has a `session.error` plugin event whose contents are undocumented. **The quota policy says running out doesn't fail: see [silent model downgrades](#silent-model-downgrades-rob-sends-an-intern).** |
 | **Gemini and others** | None known. | The provider's HTTP 429 message in the run log. |
 | **Paperclip-run agents** | None of its own. | A `Final error` line in the run log. The run *status* can still say `succeeded` ([details](paperclip-adapters.md)). |
+
+Grok Build was checked at v0.2.11 from its bundled README and local session
+files; Mammouth Code at v1.18.31.1 from its CLI and the
+[Mammouth quota policy](https://info.mammouth.ai/docs/quota-policy/).
 
 So a reliable early warning exists for Claude Code and Codex, but not for every
 agent. The design therefore has three layers, from cheapest to most expensive,
@@ -121,6 +127,32 @@ the handover mechanically:
 - Emits the confirmed `rate_limited` event (with `reset_at`) that the coach
   already accepts.
 
+### Silent model downgrades ("Rob sends an intern")
+
+Some providers don't stop when a quota runs out. They switch you to a weaker
+model and carry on. Mammouth's quota policy says quotas reset every 3 hours and
+that on reaching one, *"Mammouth automatically switches to a lighter model for the
+rest of your exchanges"* (for example Opus → Sonnet → Haiku). That policy is
+written for the platform generally and doesn't say whether it applies to
+Mammouth Code or the API, so it needs testing.
+
+This is worse than a rate limit, because nothing fails and nothing warns you: a
+review could come back clear from a much weaker model than the project trusts.
+The countermeasure treats the model that actually answered as evidence:
+
+- Each project lists the models allowed per phase in `.factory/project.json`,
+  e.g. a minimum model for `REVIEW`.
+- Every receipt records the model that produced each response, read from the
+  agent's own session record: opencode-based tools such as Mammouth store the
+  model per message, and `mammouth export` returns the session as JSON. Never
+  take the model the agent was asked to use as proof of the model it used.
+- A response from a model outside the allowed list is a downgrade signal. The
+  heartbeat treats the worker as `wrapping_up` (or `sick` if it can no longer
+  write a useful handover), benches the account until its quota window resets,
+  and reassigns.
+- The merge gate refuses `review:clear` when either review axis ran on a model
+  below the project's minimum for `REVIEW`.
+
 ### Layer C: continuous checkpoints ("Rob leaves notes through the day")
 
 For agents with no warning and no hook, and for crashes, the only protection is
@@ -151,7 +183,7 @@ From that it classifies the worker:
 |---|---|---|
 | `healthy` | Working, within budget | Nothing |
 | `wrapping_up` | Near its limit | Layer A: ask it to hand over now |
-| `sick` | Rate-limited, crashed, silent too long, or logged out | Confirm the process has stopped, run Layer B if it hasn't run, bench the account, reassign |
+| `sick` | Rate-limited, downgraded to a disallowed model, crashed, silent too long, or logged out | Confirm the process has stopped, run Layer B if it hasn't run, bench the account, reassign |
 | `parked` | No eligible agent left | Label the issue, record why and when to retry |
 
 Reassigning means what the scrum master does: change the Gitea issue's assignee
@@ -199,7 +231,10 @@ could not.
 - [ ] Layer C: checkpoint interval setting in `.factory/project.json`
 - [ ] Coach heartbeat loop with the four states above
 - [ ] Reassignment: Gitea assignee change, takeover comment, next agent started from the handover
-- [ ] Tests for each path: early wrap-up, hard limit, crash with no signal, no eligible agent
+- [ ] Model-downgrade check: allowed models per phase in `.factory/project.json`, the actual model recorded in every receipt, and the merge gate rejecting reviews from a disallowed model
+- [ ] Test Mammouth Code against an exhausted quota: does it error, or downgrade silently?
+- [ ] Test Grok Build against a real limit: what its JSON output reports
+- [ ] Tests for each path: early wrap-up, hard limit, silent downgrade, crash with no signal, no eligible agent
 
 ## 3. A built-in coordinator
 
@@ -237,12 +272,18 @@ This turns the nine manual steps in [onboarding.md](onboarding.md) into one.
 ## 6. More agents
 
 The implementation pipeline currently drives Codex only. Add a Claude Code
-adapter first, then Gemini and others. Each adapter must provide:
+adapter first, then Grok Build, Mammouth Code, Gemini and others. Each adapter
+must provide:
 
 - Starting a phase with the issue and its handover.
 - A usage sensor, if the agent exposes one.
 - A rate-limit signal.
+- The model that actually answered each request, for the downgrade check.
 - A reliable way to tell "finished" from "failed while looking successful".
+
+Paperclip already has `grok_local` and `opencode_local` adapters, and
+`grok_local` worked in the [field notes](paperclip-adapters.md). They're worth
+reading before writing new ones.
 
 ## Principles that won't change
 
