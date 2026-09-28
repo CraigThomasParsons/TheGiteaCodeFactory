@@ -1,0 +1,207 @@
+{
+  "captured": "2026-09-28",
+  "note": "Local sources adapted; source hashes are provenance, not hashes of the adapted files. No license is inferred for upstream work.",
+  "files": [
+    {
+      "source": "~/.codex/skills/tdd/SKILL.md",
+      "destination": "skills/tdd/SKILL.md",
+      "source_sha256": "991f8213db32e61fa6c0df8763c8d8d2e8218fc3a835dcf7ac35c96cc38e385e"
+    },
+    {
+      "source": "~/.codex/skills/tdd/mocking.md",
+      "destination": "skills/tdd/mocking.md",
+      "source_sha256": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef"
+    },
+    {
+      "source": "~/.codex/skills/tdd/tests.md",
+      "destination": "skills/tdd/tests.md",
+      "source_sha256": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
+    },
+    {
+      "source": "~/.codex/skills/tdd/agents/openai.yaml",
+      "destination": "skills/tdd/agents/openai.yaml",
+      "source_sha256": "ea5465e7f03dc79a5faf52ddf30e6d8ec6389f7429a2766ad8b3d9e836c54ce2"
+    },
+    {
+      "source": "~/.codex/skills/code-review/SKILL.md",
+      "destination": "skills/code-review/SKILL.md",
+      "source_sha256": "21cc2addc961378d2d33dd1d662256d0c52da1f94b0b5c4708330db1a892c7bd"
+    },
+    {
+      "source": "~/.codex/skills/code-review/agents/openai.yaml",
+      "destination": "skills/code-review/agents/openai.yaml",
+      "source_sha256": "298541d6ea51060e2a8dcb863b7f88dcfb29043881695e80c5a583e1bead25af"
+    },
+    {
+      "source": "~/.codex/skills/simplify/SKILL.md",
+      "destination": "skills/simplify/SKILL.md",
+      "source_sha256": "192a800b5708e1a66af4717cdcfe583309ad033a0c80ada3d7507fc267f766d9"
+    },
+    {
+      "source": "~/.codex/skills/simplify/agents/openai.yaml",
+      "destination": "skills/simplify/agents/openai.yaml",
+      "source_sha256": "4031efae8f0e1529a011af108822ace0cf9addb54f65b869db4a435d056662dd"
+    },
+    {
+      "source": "~/.codex/skills/improve-codebase-architecture/SKILL.md",
+      "destination": "skills/improve-codebase-architecture/SKILL.md",
+      "source_sha256": "b373c326c546f94ababbef09e132b37d060e2fc7396832431254804c916a7b90"
+    },
+    {
+      "source": "~/.codex/skills/improve-codebase-architecture/references/HTML-REPORT.md",
+      "destination": "skills/improve-codebase-architecture/references/HTML-REPORT.md",
+      "source_sha256": "917c5419fab9c20361e7b13fa7beef0edc1ac2762dec49568e76cec5f2b7f317"
+    },
+    {
+      "source": "~/.codex/skills/improve-codebase-architecture/agents/openai.yaml",
+      "destination": "skills/improve-codebase-architecture/agents/openai.yaml",
+      "source_sha256": "67cfa185287ee398d821634aa420bbf05c2c06462b5fe0689b0a69f0e21528aa"
+    },
+    {
+      "source": "~/.codex/skills/supervise-agent-pipeline/SKILL.md",
+      "destination": "skills/supervise-agent-pipeline/SKILL.md",
+      "source_sha256": "1d12fe014f600a2627061c90df6b9d28f13ad37d324a51ca2aff61395b14a5e3"
+    },
+    {
+      "source": "~/.codex/skills/supervise-agent-pipeline/references/execution-states.md",
+      "destination": "skills/supervise-agent-pipeline/references/execution-states.md",
+      "source_sha256": "9e11461ceb1bad27d6635aa4ee631546f865af4b78eb8e6fa73397abd169c33f"
+    },
+    {
+      "source": "~/.codex/skills/supervise-agent-pipeline/scripts/classify_execution.py",
+      "destination": "skills/supervise-agent-pipeline/scripts/classify_execution.py",
+      "source_sha256": "25c0e889122496ebd905dd77e2c62435ef7c0fe9e90fdd7f998dd4d3411fed72"
+    },
+    {
+      "source": "~/.codex/skills/supervise-agent-pipeline/agents/openai.yaml",
+      "destination": "skills/supervise-agent-pipeline/agents/openai.yaml",
+      "source_sha256": "3af2c88e8015a21fdb9236b5d57a35c19457739dd93ff70ff0dce616e259d0b7"
+    },
+    {
+      "source": "~/.agents/skills/pr-review-loop/SKILL.md",
+      "destination": "skills/pr-review-loop/SKILL.md",
+      "source_sha256": "f0c3150397fb3a2c060e787b442422213fb51fae5cd4cf9a838baffec56beeda"
+    },
+    {
+      "source": "~/.agents/skills/pr-resolve-loop/SKILL.md",
+      "destination": "skills/pr-resolve-loop/SKILL.md",
+      "source_sha256": "e2303c8efb22a8a59533cb4978d280afabbfaa915ed2d66a55c3fae81242ff9f"
+    },
+    {
+      "source": "~/.agents/skills/pr-review-resolve-loop/SKILL.md",
+      "destination": "skills/pr-review-resolve-loop/SKILL.md",
+      "source_sha256": "3bd1a91293bea5a1658515ea9a38cb1064c093a201a4cd7cbdd0ebc5dd09e886"
+    },
+    {
+      "source": "~/.agents/skills/pr-review-resolve-loop/references/receipt.md",
+      "destination": "skills/pr-review-resolve-loop/references/receipt.md",
+      "source_sha256": "399c6166478a387531fcc671ef381520299d357e4db2e452c86156f6abad264c"
+    },
+    {
+      "source": "~/.agents/skills/pr-review-resolve-loop/scripts/gitea_merge.py",
+      "destination": "skills/pr-review-resolve-loop/scripts/gitea_merge.py",
+      "source_sha256": "9f848c460ada4a8d26ef2f9aef79cdea097131878cac7a4b60da5282bf6109b0"
+    },
+    {
+      "source": "~/.agents/skills/pr-review-resolve-loop/tests/test_gitea_merge.py",
+      "destination": "skills/pr-review-resolve-loop/tests/test_gitea_merge.py",
+      "source_sha256": "ab63c084d4f65065a85155723a1ac38e83ddffa9c3dc1087ebc0bd943d0a4890"
+    },
+    {
+      "source": "~/.codex/skills/slice-pipeline/scripts/pipeline.py",
+      "destination": "skills/slice-pipeline/scripts/pipeline.py",
+      "source_sha256": "d2d8cb1bb7fde07e957ca37e4257402153671c4cc6720f54ce4ae66fd5f98c50"
+    },
+    {
+      "source": "~/.codex/skills/slice-pipeline/scripts/test_pipeline.py",
+      "destination": "skills/slice-pipeline/scripts/test_pipeline.py",
+      "source_sha256": "370377f507f9b58946a67daa3047913c7c5341f0709debae326223e782b08699"
+    },
+    {
+      "source": "~/.codex/skills/slice-pipeline/references/protocol.md",
+      "destination": "skills/slice-pipeline/references/protocol.md",
+      "source_sha256": "297ec1ec1df5d662107fee50cfb93b9f8772af12774f349e09c10320e5b4bfd2"
+    },
+    {
+      "source": "~/.codex/skills/tmux-pipeline/scripts/verify-freshness.sh",
+      "destination": "skills/tmux-pipeline/scripts/verify-freshness.sh",
+      "source_sha256": "967a2c89db379cc669aa0672100f9a128d3e3c6ed6bd624b033a5b5e05095f18"
+    },
+    {
+      "source": "~/.codex/skills/dispatcher/scripts/gitea.py",
+      "destination": "skills/dispatcher/scripts/gitea.py",
+      "source_sha256": "fef68f2c3964252dbaf832c3e407af7edc779f4f4c46d55b3c9c9e879b08090c"
+    },
+    {
+      "source": "~/.codex/skills/dispatcher/scripts/spec-audit.sh",
+      "destination": "skills/dispatcher/scripts/spec-audit.sh",
+      "source_sha256": "e1be8bbd7ae4674ea91c324a4379664f621e61050580ce10171c20890975e38d"
+    },
+    {
+      "source": "~/Code/AgileMedievalPeasantBoard/scripts/tools/ai_pr_reviewer.js",
+      "destination": "scripts/reviewer/ai_pr_reviewer.js",
+      "source_sha256": "f4a335a92a68a6a3b25fd9ce65b10d9f237a326877f59fba6d022cac4d45a80e"
+    },
+    {
+      "source": "~/Code/AgileMedievalPeasantBoard/scripts/tools/tests/ai_pr_reviewer.test.js",
+      "destination": "scripts/reviewer/tests/ai_pr_reviewer.test.js",
+      "source_sha256": "41d02d745788d1172126de5371d684c832888619b3dd4b979dfec962e9f4bca3"
+    },
+    {
+      "source": "~/Code/TheNightCrew/scripts/gitea-night-worker",
+      "destination": "integrations/nightcrew/scripts/gitea-night-worker",
+      "source_sha256": "27a3a5dbf02f1c8c24f74e943ecf6fc82ebf60be03257d3425cabed6a6d9a4b9"
+    },
+    {
+      "source": "~/Code/TheNightCrew/scripts/gitea_night/__init__.py",
+      "destination": "integrations/nightcrew/scripts/gitea_night/__init__.py",
+      "source_sha256": "3fac1482ec06c952cd18915f407f1b666f43b878403aadf4c5a3b537d9cc134a"
+    },
+    {
+      "source": "~/Code/TheNightCrew/scripts/gitea_night/agents.py",
+      "destination": "integrations/nightcrew/scripts/gitea_night/agents.py",
+      "source_sha256": "c6c7dcbca5e84f8550e3e5bc1284acae748ee00a9208de780bd893eee675e6bc"
+    },
+    {
+      "source": "~/Code/TheNightCrew/scripts/gitea_night/coordinator.py",
+      "destination": "integrations/nightcrew/scripts/gitea_night/coordinator.py",
+      "source_sha256": "1f4beb0856af914ebd250307f4af3aa57eee1d2970f66418c9de2dc0eb2fd5fe"
+    },
+    {
+      "source": "~/Code/TheNightCrew/scripts/gitea_night/gitea.py",
+      "destination": "integrations/nightcrew/scripts/gitea_night/gitea.py",
+      "source_sha256": "7f7b5c7195bbf6ae0b4557c8a64e47da8b3e8bbe7635f12bc90930669489aed3"
+    },
+    {
+      "source": "~/Code/TheNightCrew/scripts/gitea_night/merge.py",
+      "destination": "integrations/nightcrew/scripts/gitea_night/merge.py",
+      "source_sha256": "9802c68ad4df44e8139ece2b18f3844e13d16d0f6317c6078601d9a0d239e193"
+    },
+    {
+      "source": "~/Code/TheNightCrew/scripts/gitea_night/metrics.py",
+      "destination": "integrations/nightcrew/scripts/gitea_night/metrics.py",
+      "source_sha256": "a5ab42cfc485ff97e1fc6387a3cd9ac2a9ef62b7988ce054030f9a95d7ccfa21"
+    },
+    {
+      "source": "~/Code/TheNightCrew/scripts/gitea_night/policy.py",
+      "destination": "integrations/nightcrew/scripts/gitea_night/policy.py",
+      "source_sha256": "1b38cfc90522268c10540c3cad64b99e9c86dec79f8c5d15907993694ac05a5b"
+    },
+    {
+      "source": "~/Code/TheNightCrew/scripts/gitea_night/runtime.py",
+      "destination": "integrations/nightcrew/scripts/gitea_night/runtime.py",
+      "source_sha256": "597b657a1a353a44a5980aa1ea9758249ff8a918762fd0573dd83eeb1c382c0d"
+    },
+    {
+      "source": "~/Code/TheNightCrew/scripts/gitea_night/worker.py",
+      "destination": "integrations/nightcrew/scripts/gitea_night/worker.py",
+      "source_sha256": "af29d156be9952aff14421c32642b0879199e06eaa2ac653df9df396176c31cf"
+    },
+    {
+      "source": "~/Code/TheNightCrew/tests/Python/test_gitea_night.py",
+      "destination": "integrations/nightcrew/tests/Python/test_gitea_night.py",
+      "source_sha256": "469f756781374b1168a0e63e8b5a2a649760deaace2814d3676aacc5302dcb98"
+    }
+  ],
+  "nightcrew_revision": "2371e1c627f1c742416d4c6a22b140dc732242c7"
+}

@@ -1,0 +1,18 @@
+{
+  "server": "https://gitea.example.test",
+  "repo": "owner/project",
+  "base_branch": "main",
+  "assignee": "operator",
+  "review_mode": "review-and-repair",
+  "auto_merge": false,
+  "merge_method": "squash",
+  "max_prs_per_batch": 2,
+  "max_repair_rounds": 3,
+  "required_contexts": ["project-validation"],
+  "validation_commands": ["REPLACE_WITH_PROJECT_TEST_COMMAND"],
+  "bdd_features": "tests/bdd/features",
+  "parity_required": false,
+  "oracle_revision": null,
+  "allowed_agents": ["codex"],
+  "factory_revision": "REPLACE_WITH_REVIEWED_FACTORY_COMMIT"
+}

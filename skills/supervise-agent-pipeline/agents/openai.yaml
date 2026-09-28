@@ -1,0 +1,4 @@
+interface:
+  display_name: "Supervise Agent Pipeline"
+  short_description: "Supervise durable evidence-gated agent phases"
+  default_prompt: "Use $supervise-agent-pipeline to supervise this worker through its declared phases."

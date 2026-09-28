@@ -1,0 +1,4 @@
+interface:
+  display_name: "improve-codebase-architecture"
+  short_description: "Apply worthwhile architecture improvements"
+  default_prompt: "Use $improve-codebase-architecture on the current issue change set."

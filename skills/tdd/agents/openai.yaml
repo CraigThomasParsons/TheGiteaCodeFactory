@@ -1,0 +1,4 @@
+interface:
+  display_name: "tdd"
+  short_description: "Build behavior one failing test at a time"
+  default_prompt: "Use $tdd on the current issue change set."

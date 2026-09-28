@@ -1,0 +1,15 @@
+log:
+  level: info
+runner:
+  file: /data/.runner
+  capacity: 1
+  timeout: 1h
+  fetch_timeout: 5s
+  fetch_interval: 2s
+cache:
+  enabled: false
+container:
+  network: gitea-code-factory
+  privileged: false
+  valid_volumes: []
+  docker_host: '-'

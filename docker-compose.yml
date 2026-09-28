@@ -1,0 +1,55 @@
+name: gitea-code-factory
+services:
+  gitea:
+    image: ${GITEA_IMAGE:-docker.io/gitea/gitea:1.27.3}
+    restart: unless-stopped
+    environment:
+      USER_UID: ${USER_UID:-1000}
+      USER_GID: ${USER_GID:-1000}
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__server__DOMAIN: ${GITEA_DOMAIN:-localhost}
+      GITEA__server__ROOT_URL: ${GITEA_ROOT_URL:-http://localhost:3300/}
+      GITEA__server__SSH_DOMAIN: ${GITEA_DOMAIN:-localhost}
+      GITEA__server__SSH_PORT: ${GITEA_SSH_PORT:-2223}
+      GITEA__actions__ENABLED: 'true'
+      GITEA__service__DISABLE_REGISTRATION: 'true'
+    ports:
+      - '${GITEA_BIND_ADDRESS:-127.0.0.1}:${GITEA_HTTP_PORT:-3300}:3000'
+      - '${GITEA_BIND_ADDRESS:-127.0.0.1}:${GITEA_SSH_PORT:-2223}:22'
+    volumes:
+      - gitea-data:/data
+    networks: [factory]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1:3000/api/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+  runner:
+    image: ${GITEA_RUNNER_IMAGE:-docker.io/gitea/runner:4.0.0}
+    profiles: [actions]
+    restart: unless-stopped
+    depends_on:
+      gitea:
+        condition: service_healthy
+    environment:
+      CONFIG_FILE: /config.yaml
+      GITEA_INSTANCE_URL: http://gitea:3000
+      GITEA_RUNNER_REGISTRATION_TOKEN_FILE: /run/secrets/runner_token
+      GITEA_RUNNER_NAME: factory-runner
+      GITEA_RUNNER_LABELS: factory-node:docker://node:22-bookworm
+    secrets: [runner_token]
+    volumes:
+      - runner-data:/data
+      - ./infra/runner/config.yaml:/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks: [factory]
+secrets:
+  runner_token:
+    file: ./secrets/runner-token
+volumes:
+  gitea-data:
+  runner-data:
+networks:
+  factory:
+    name: gitea-code-factory

@@ -1,0 +1,8 @@
+.env
+secrets/
+state/
+artifacts/
+node_modules/
+__pycache__/
+*.pyc
+.runner

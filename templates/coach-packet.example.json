@@ -1,0 +1,16 @@
+{
+  "task": "https://gitea.example.test/owner/project/issues/1",
+  "repo": "owner/project",
+  "branch": "feature/issue-1",
+  "worktree": "/absolute/path/to/isolated/worktree",
+  "phase": "IMPL",
+  "head_sha": "REPLACE_WITH_OBSERVED_HEAD_SHA",
+  "evidence": ["/absolute/path/to/attempt/log.jsonl"],
+  "agent": "codex-primary",
+  "attempted_accounts": [],
+  "acceptance_criteria": ["Replace with issue criteria"],
+  "allowed_paths": ["Replace with authorized paths"],
+  "uncommitted_changes": [],
+  "validation_commands": ["Replace with project validation"],
+  "previous_attempt": "/absolute/path/to/attempt/receipt.json"
+}

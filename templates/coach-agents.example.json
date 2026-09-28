@@ -1,0 +1,6 @@
+{
+  "agents": [
+    {"id": "codex-primary", "account": "codex-main", "enabled": true, "installed": true, "capabilities": ["IMPL", "SIMPLIFY", "ARCHITECTURE", "REVIEW", "PR"]},
+    {"id": "claude-secondary", "account": "claude-main", "enabled": false, "installed": false, "capabilities": ["IMPL", "SIMPLIFY", "ARCHITECTURE", "REVIEW", "PR"]}
+  ]
+}

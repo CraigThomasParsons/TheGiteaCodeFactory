@@ -1,0 +1,12 @@
+name: Factory runner smoke
+on:
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: factory-node
+    steps:
+      - name: Check job tools and Gitea connectivity
+        run: |
+          node --version
+          git --version
+          node -e 'fetch(process.env.GITHUB_SERVER_URL + "/api/healthz").then(r => { if (!r.ok) process.exit(1); console.log("Gitea reachable"); }).catch(() => process.exit(1))'

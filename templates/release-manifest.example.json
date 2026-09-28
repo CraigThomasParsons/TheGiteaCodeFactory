@@ -1,0 +1,13 @@
+{
+  "release": "vX.Y.Z",
+  "gitea_repo": "owner/project",
+  "github_repo": "owner/project",
+  "release_sha": "REPLACE_WITH_VERIFIED_GITEA_SHA",
+  "cohort": [{"issue": "ISSUE_URL", "merged_pr": "PR_URL", "merge_sha": "SHA", "acceptance_evidence": ["EVIDENCE_PATH"]}],
+  "deferred": [],
+  "validation": [{"command": "PROJECT_RELEASE_CHECK", "exit_code": null, "evidence": "LOG_PATH"}],
+  "assets": [{"path": "ARTIFACT", "sha256": "SHA256"}],
+  "github_verified_sha": null,
+  "draft_release_url": null,
+  "status": "preparing"
+}

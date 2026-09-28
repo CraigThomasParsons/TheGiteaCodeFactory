@@ -1,0 +1,4 @@
+interface:
+  display_name: "code-review"
+  short_description: "Review standards and specification independently"
+  default_prompt: "Use $code-review on the current issue change set."

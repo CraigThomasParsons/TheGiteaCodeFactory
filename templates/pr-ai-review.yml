@@ -1,0 +1,46 @@
+name: Factory advisory PR review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  advisory-review:
+    runs-on: factory-node
+    steps:
+      - name: Run the pinned factory reviewer against trusted base guidance
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+          GITEA_API_URL: ${{ github.api_url }}
+          GITEA_SERVER_URL: ${{ github.server_url }}
+          GITEA_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_BRANCH: ${{ github.base_ref }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+          FACTORY_URL: ${{ vars.FACTORY_URL }}
+          FACTORY_REVISION: ${{ vars.FACTORY_REVISION }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+        run: |
+          set -euo pipefail
+          : "${FACTORY_URL:?Set FACTORY_URL}"
+          : "${GEMINI_MODEL:?Set GEMINI_MODEL}"
+          [[ "$FACTORY_URL" == https://* ]]
+          [[ "$FACTORY_REVISION" =~ ^[0-9a-f]{40}$ ]]
+          scratch=$(mktemp -d)
+          trap 'rm -rf "$scratch"' EXIT
+          git init -q "$scratch/factory"
+          git -C "$scratch/factory" fetch -q --depth 1 "$FACTORY_URL" "$FACTORY_REVISION"
+          git -C "$scratch/factory" checkout -q --detach FETCH_HEAD
+          [[ $(git -C "$scratch/factory" rev-parse HEAD) == "$FACTORY_REVISION" ]]
+          cat > "$scratch/askpass" <<'ASKPASS'
+          #!/bin/sh
+          case "$1" in
+            *Username*) printf '%s\n' 'x-access-token' ;;
+            *) printf '%s\n' "$GITEA_TOKEN" ;;
+          esac
+          ASKPASS
+          chmod 700 "$scratch/askpass"
+          GIT_ASKPASS="$scratch/askpass" GIT_TERMINAL_PROMPT=0 \
+            git clone -q --depth 1 --branch "$BASE_BRANCH" \
+            "$GITEA_SERVER_URL/$GITEA_REPOSITORY.git" "$scratch/base"
+          cd "$scratch/base"
+          node "$scratch/factory/scripts/reviewer/ai_pr_reviewer.js"

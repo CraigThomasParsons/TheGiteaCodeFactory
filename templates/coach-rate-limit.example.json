@@ -1,0 +1,6 @@
+{
+  "kind": "rate_limited",
+  "agent": "codex-primary",
+  "writer_stopped": false,
+  "reset_at": null
+}

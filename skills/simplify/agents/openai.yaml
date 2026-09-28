@@ -1,0 +1,4 @@
+interface:
+  display_name: "simplify"
+  short_description: "Simplify changed code while preserving behavior"
+  default_prompt: "Use $simplify on the current issue change set."
