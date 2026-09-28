@@ -1,6 +1,9 @@
-# Validation checkpoint — 2026-09-28
+# What has been validated
 
-Local verification of the initial factory kit:
+This page separates what is proven by tests from what still needs a live run, so
+you know which parts to trust and which to canary yourself. The table is the last
+recorded local run of `bash scripts/check.sh` plus the NightCrew worker tests
+(2026-09-28); rerun them after cloning.
 
 | Check | Result |
 |---|---|
@@ -16,16 +19,18 @@ Local verification of the initial factory kit:
 | Gitea 1.27.3 and runner 4.0.0 registry manifests | Resolved |
 | Local Markdown links | No broken links |
 
-Independent Standards and Spec reviews found four defects, fixed with regression
-coverage: account cooldown shortening; JSON boolean/number equivalence in parity;
+Independent Standards and Spec reviews of the kit found four defects, now fixed
+with regression tests: account cooldown shortening; JSON boolean/number equivalence in parity;
 SSH/HTTPS repository lock identity; and merge success without a verified merge SHA.
 
-These checks did not start Gitea/Actions, authenticate providers, change Paperclip,
-claim NightCrew jobs, mutate PRs or publish releases. Registry manifest resolution
+None of these checks start Gitea or Actions, authenticate providers, claim
+coordinator jobs, change PRs or publish releases. Registry manifest resolution
 is not container startup validation. All live canaries listed in operations.md
 remain required before enabling a project.
 
-The next deployment packet is an isolated Gitea/Actions canary, followed by one
+## Not yet validated live
+
+The next step is an isolated Gitea/Actions canary, followed by one
 project's complete BDD/implementation/review/repair/merge acceptance run. Before
 multi-week automatic issue delivery, resolve NightCrew issue-job retry/completion
 evidence and connect coach observation/launch adapters. Final distribution needs a

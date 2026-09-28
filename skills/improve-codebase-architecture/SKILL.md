@@ -4,7 +4,7 @@ description: Find architectural friction in a change set, evaluate module depth 
 ---
 # Improve codebase architecture
 
-Adapted from the operator's original The-Pulse supporting skill. Read CONTEXT.md and applicable ADRs before suggesting changes; preserve the domain vocabulary and existing decisions.
+Read CONTEXT.md and applicable ADRs before suggesting changes; preserve the domain vocabulary and existing decisions.
 
 Use this vocabulary: a **module** hides implementation behind an **interface**; **depth** is useful hidden complexity relative to interface complexity; a **seam** is an observable test boundary; an **adapter** connects external infrastructure; **locality** keeps related concepts together; **leverage** is the amount of useful behavior improved by a small interface change. Avoid extracting functions solely to expose internals to tests. One adapter often represents a hypothetical seam; multiple real consumers provide stronger evidence for abstraction.
 

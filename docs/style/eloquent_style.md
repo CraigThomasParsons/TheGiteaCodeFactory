@@ -1,5 +1,8 @@
 # Eloquent Best Practices for Claude, Codex or Gemini
 
+> **Example guide.** Laravel Eloquent rules for agents, from the author's Laravel
+> projects. See [README.md](README.md).
+
 ## Use Correct Relationship Types
 
 Use `hasMany`, `belongsTo`, `morphMany`, etc. with proper return type hints.

@@ -34,11 +34,10 @@ not recognise from the directory it was pointed at. See
 | [coordinate-cross-project-work](../skills/coordinate-cross-project-work/SKILL.md) | Dependency packets and evidence across repositories |
 | [release-preparation](../skills/release-preparation/SKILL.md) | Completed cohort → explicit GitHub refs and draft release evidence |
 
-BDD, parity, coach, NightCrew and release instructions were extracted for this
-factory; they are not assertions that the original installed skill set had these
-names. Existing TDD/review/phase scripts are captured with provenance and portable
-adaptations. This catalog covers the delivery/testing workflow requested here, not
-unrelated installed PixiJS, document-editing or model-deployment skills.
+The BDD, parity, coach, NightCrew and release skills were written for this kit.
+The TDD, review and phase skills and scripts were adapted from the author's working
+agent setup; [provenance.json](provenance.json) records their origins. Only skills
+that belong to the delivery and testing workflow are included.
 
 ## Executable helpers
 
@@ -78,8 +77,8 @@ CLI flags and environment configure the executables as documented.
 | `gitea_night/metrics.py` | Recorded worker metrics/reporting |
 
 This snapshot has its own `night:*` labels, schemas and scheduling. It is included
-to make the existing integration inspectable and reproducible, not to replace the
-NightCrew Laravel server or claim it is wired to the coach. See the
+so you can see how a worker talks to the coordinator. It is only the client: the
+TheNightCrew server is not part of this kit, and the worker is not wired to the coach. See the
 [integration limitations](nightcrew.md) before executing any stage.
 
 ## Provider/runtime boundaries

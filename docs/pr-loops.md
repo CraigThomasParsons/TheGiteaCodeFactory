@@ -6,8 +6,9 @@ Use either the standalone skills below or the NightCrew worker described in
 [nightcrew.md](nightcrew.md). Their labels and receipt formats are different.
 Do not run both controllers on the same PR.
 
-The original Gemini reviewer remains an optional **advisory** check. Its
-`night-shift-review-task:v1` marker is not a current-head merge authorization.
+The Gemini reviewer (below) is an optional **advisory** check. The
+`night-shift-review-task:v1` marker it leaves on a PR is not a current-head merge
+authorization.
 The strict merge gate uses independent review plus actual validation evidence.
 
 ## Standalone skills
@@ -53,9 +54,9 @@ A timestamp or label alone is not proof. Local test results can be published as
 
 ## Gemini advisory Actions reviewer
 
-`scripts/reviewer/ai_pr_reviewer.js` preserves the existing provider chain and
-secret-pattern scanner, with explicit project/API inputs and a fail-closed diff
-fetch. It no longer falls back to comparing the factory checkout against itself.
+`scripts/reviewer/ai_pr_reviewer.js` tries a chain of model providers in order and
+runs a heuristic secret-pattern scanner over the diff. It takes explicit project and
+API inputs and fails closed if it cannot fetch the PR diff.
 
 Copy `templates/pr-ai-review.yml` into the target's `.gitea/workflows/` and configure:
 
@@ -77,7 +78,7 @@ GROQ and OLLAMA keys/models/base URLs; they are opt-in and not enabled by this t
 The job executes factory code pinned by SHA and reads style guidance from the
 trusted target branch; it never checks out and executes PR code. Workflows themselves
 must remain trusted: restrict workflow-editing rights and fork secret exposure.
-Only review data goes to configured model providers. The original heuristic secret
+Only review data goes to configured model providers. The heuristic secret
 scanner is an aid, not a guarantee that diffs contain no sensitive data.
 
 The factory's root `package.json` supplies ESM mode. Keep the script inside that

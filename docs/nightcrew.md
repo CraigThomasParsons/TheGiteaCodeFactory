@@ -1,26 +1,37 @@
-# TheNightCrew integration and observed gaps
+# The coordinator (TheNightCrew)
 
-TheNightCrew is a coordinator, not an executor: durable jobs, atomic claims,
-worker identity, tracker fences and a dashboard. Workers hold checkouts and run
-agents. Its source ADR explicitly preserves that split. The factory adds the
-end-to-end workflow and setup contract around those existing parts.
+The factory needs one service that owns the job queue across all worker
+computers. The author's is **TheNightCrew**, a Laravel application: durable jobs,
+atomic claims, worker identity, tracker fences and a live dashboard.
+**TheNightCrew is not currently published.** This page documents the contract it
+implements so you can build or adapt a substitute, and the kit includes its
+worker client (`integrations/nightcrew`) so you can see how a worker talks to it.
 
-## Evidence inspected
+If you run a single worker computer, you can defer the coordinator: the tmux
+pipeline's local branch/worktree locks already keep one writer per branch on one
+machine. You need a coordinator once more than one computer can pick up work.
 
-Inspected local revision `2371e1c627f1c742416d4c6a22b140dc732242c7` on 2026-09-28:
-README, CONTEXT, ADR 0001, API routes, `TransitionJobStatus.php`, ready intake docs,
-and the `scripts/gitea_night` worker. The local README still says scaffolding, but
-code contains intake, claims and PR stages. Documentation state is not deployment proof.
-Untracked local files were left untouched; no live queue or PR was mutated.
+## Design rule: coordinator, not executor
 
-The supplied handoff reports completion-evidence and quota fixes, a Paperclip canary,
-lock staleness follow-ups and inconsistent claims about issue requeue. Treat its
-PR numbers/statuses as historical, not freshly verified server state.
+The coordinator decides *who works what*; it never runs agents or holds
+checkouts. Workers pull a job, execute it locally and report back. Keep that
+split in any substitute: a queue that also runs work cannot safely hand a job to
+another machine when the first one stalls.
 
-**Verified code finding:** the `claimed/running → queued` branch is inside
-`JobKind::PullRequest`. Ordinary issue jobs use `claimed → running → done|failed`.
-Do not teach clients to requeue issue jobs until the server supports it. On quota,
-park/retain the claim and block a second claim pending an explicit recovery path.
+## Behaviors a substitute must get right
+
+These come from reading TheNightCrew's source, and each is a trap a new
+implementation is likely to fall into.
+
+- **Job kinds have different lifecycles.** In TheNightCrew, only pull-request jobs
+  can go from `claimed`/`running` back to `queued`. Ordinary issue jobs go
+  `claimed → running → done|failed` with no requeue. So when a worker hits a quota
+  limit on an issue job, it must park and keep the claim rather than release it,
+  until the server supports an explicit recovery path.
+- **Intake is idempotent.** Jobs are deduplicated by a source key, so rescanning
+  Gitea for `ready-for-agent` issues must not resurrect completed jobs.
+- **Done closes the issue.** Marking a job done fences the Gitea issue closed, so a
+  worker must only report done after verifying merged code and acceptance evidence.
 
 ## API responsibilities
 
@@ -36,16 +47,17 @@ the worker's Sanctum token, distinct from the Gitea PAT:
 | PATCH `/jobs/{job}/status` | Report supported transition / PR receipt and claim token |
 | GET `/pr-jobs` | Discover PR-stage history |
 
-Read the deployed server's request validators before constructing bodies. Do not
-write its DB or simulate a successful claim locally. Source-key deduplication means
-a repeated intake scan must not resurrect completed jobs.
+The request and response bodies the worker sends are visible in
+`integrations/nightcrew/scripts/gitea_night/coordinator.py`; a substitute server must
+accept the same shapes. Workers never write the coordinator's database directly or
+simulate a successful claim locally.
 
 ## Included worker snapshot
 
-`integrations/nightcrew/scripts/gitea-night-worker` and `gitea_night/*.py` preserve
-the existing local worker, with source hashes in `provenance.json`. No Laravel server
-or live configuration is copied. Install/deploy the actual TheNightCrew repository
-separately using its own setup; this kit's Compose supplies only Gitea and Actions.
+`integrations/nightcrew/scripts/gitea-night-worker` and `gitea_night/*.py` are a
+copy of TheNightCrew's worker client, with source hashes in `provenance.json`. No
+server code or live configuration is included; this kit's Compose supplies only
+Gitea and Actions. The worker expects a coordinator serving the API above.
 
 Inspect available flags without claiming work:
 
@@ -56,25 +68,26 @@ bash integrations/nightcrew/scripts/gitea-night-worker --help
 Its stages are `discover`, `review`, `resolve`. They are **operational**, not dry-run
 commands: discovery can enqueue jobs/change labels; resolution can invoke merging.
 Pass `--gitea-url`, `--nightcrew-url`, `--gitea-token`, `--nightcrew-token`, `--owner`
-and a private `--state-dir` explicitly. Legacy token-file defaults remain in the
-snapshot for fidelity; do not depend on another user's files.
+and a private `--state-dir` explicitly. The snapshot's default token paths
+(`~/.config/pulse/...`) are the author's own layout, left unchanged so the copy
+matches its source; always override them.
 
 It uses `night:*` labels, `.gitea/night-merge.json` from the trusted target revision,
-Claude-first execution with one Codex fallback, and fixed America/Toronto windows:
-review 00:30–02:59, resolve 03:00–06:59. These are source defaults, not factory-wide
-policy. Review its source/tests before changing scheduling or provider routing.
+Claude-first execution with one Codex fallback, and fixed overnight windows in the
+author's timezone (America/Toronto): review 00:30–02:59, resolve 03:00–06:59. These
+are source defaults, not factory-wide policy; adjust them for your hours. Review its source/tests before changing scheduling or provider routing.
 The new coach helper is not yet wired into this worker.
 
-## Required integration work before a fleet rollout
+## Known gaps before a multi-computer rollout
 
 - Prove issue completion from merged PR + acceptance evidence; exit 0 must never
   directly close an issue. The source's Done transition fences the issue closed,
   so callers must withhold Done until verified (server enforcement is desirable).
 - Implement/test ordinary issue-job parking/requeue and claim-safe retry. Exit 75
   signals provider exhaustion, not a tested successful requeue.
-- Standardize lease/heartbeat recovery across launcher families. The handoff shows
-  AMPB, Portfolio/RTS and feudal-frontiers have different implementations; one copied
-  patch is not evidence for all. Prefer kernel advisory locks for local writer life,
+- Standardize lease/heartbeat recovery across launcher families. In the author's
+  setup, three projects each grew their own worker launcher with different lock and
+  heartbeat handling; a fix proven in one is not evidence for the others. Prefer kernel advisory locks for local writer life,
   while preserving coordinator claims across machines.
 - Connect actual provider events to the coach and use matching runtime adapters.
 - Exercise restart, lost network reply, dirty worktree, quota, stale heartbeat,

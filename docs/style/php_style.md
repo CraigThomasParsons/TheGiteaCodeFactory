@@ -1,6 +1,9 @@
 # PHP Coding Style and Commenting Conventions (Project Standard)
 
-This document defines the required PHP coding style for AgileMedievalPeasantBoard
+> **Example guide.** Written for AgileMedievalPeasantBoard, the author's Laravel/Livewire game; included as a worked example. Copy it into your
+> project and replace the project-specific parts. See [README.md](README.md).
+
+This document defines the required PHP coding style for the project's
 application code, Livewire components, tests, migrations, seeders, factories,
 and related tooling.
 The core goal is clarity, explicitness, and long-term maintainability.

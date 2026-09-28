@@ -4,7 +4,7 @@ description: Simplify an issue's changed code without changing behavior, then ve
 ---
 # Simplify
 
-This implements the SIMPLIFY phase described in the operator's original tmux workflow; Claude's built-in /simplify command was not a copied skill.
+This implements the SIMPLIFY phase of the tmux pipeline (see `../tmux-pipeline/SKILL.md`). It is a standalone skill, independent of any agent's built-in simplify command.
 
 Read the issue, base SHA, diff, tests and prior phase receipt. Remove avoidable duplication, unnecessary branches, misleading names and speculative scaffolding within the changed code. Keep public behavior, contracts and approved architecture unchanged. Prefer fewer concepts over extra helper layers. Do not widen this into a repository-wide cleanup or architectural redesign; architecture has its own following phase.
 

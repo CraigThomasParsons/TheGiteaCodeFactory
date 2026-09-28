@@ -14,8 +14,8 @@ docker compose ps
 ```
 
 Open `http://localhost:3300`, finish Gitea's installer and explicitly create the
-administrator account there. The web port is 3300 and SSH is 2223 to avoid the
-existing Gitea and Paperclip ports. Registration is disabled after setup. Keep the
+administrator account there. The web port is 3300 and SSH is 2223 so the stack can
+sit beside an existing Gitea (3000/22) or Paperclip (3100) on the same host. Registration is disabled after setup. Keep the
 configured database type/path and external URL consistent with Compose.
 
 For remote workers, change `.env` before starting: set the externally reachable
@@ -51,7 +51,7 @@ disabled in the config, it is not a hostile-code isolation boundary.
 
 ## Existing Gitea installation
 
-Do not run a second Gitea as a replacement for the existing server. Keep its data,
+If you already run Gitea, do not stand up a second one to replace it. Keep its data,
 URL, repositories and identities. Enable Actions there and register a compatible
 runner against its reachable URL using the [official runner instructions](https://docs.gitea.com/runner/installation/docker/).
 The supplied Compose is a new-instance recipe; its runner depends on the bundled

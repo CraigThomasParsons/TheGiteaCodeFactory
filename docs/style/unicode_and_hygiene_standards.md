@@ -1,5 +1,8 @@
 # Unicode & Hygiene Standards
 
+> **Example guide.** Written for AgileMedievalPeasantBoard; issue numbers, paths and game vocabulary refer to that repository; included as a worked example. Copy it into your
+> project and replace the project-specific parts. See [README.md](README.md).
+
 How this repo handles ambiguous Unicode characters and code hygiene (dead code,
 unused dependencies, spelling). Written 2026-06-20 as the deliverable of issue
 #254 (Phase 12D — Developer Tooling & Code Quality), slice 5 of the TS quality

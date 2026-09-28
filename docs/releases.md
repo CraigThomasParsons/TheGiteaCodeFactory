@@ -2,8 +2,9 @@
 
 This is the intended final stage, not an already-proven deployment. Gitea remains
 the working authority; the equivalent GitHub repository distributes reviewed releases.
-For this kit, GitHub origin is `CraigThomasParsons/TheGiteaCodeFactory`; each product
-has its own explicit mapping, which must be verified before writing.
+Each Gitea repository needs its own explicit GitHub mapping (for example
+`gitea.example.test/owner/project` → `github.com/owner/project`), verified before
+anything is pushed.
 
 ## Readiness gate
 

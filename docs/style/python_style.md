@@ -1,8 +1,12 @@
 # Python Coding Style and Commenting Conventions (Project Standard)
 
-This document defines the required Python coding style for
-AgileMedievalPeasantBoard automation, NAS deployment scripts, agent pipeline
-tools, and related maintenance utilities.
+> **Example guide.** Written for AgileMedievalPeasantBoard, which deploys to a home NAS over SSH; included as a worked example. Copy it into your
+> project and replace the project-specific parts. See [README.md](README.md).
+
+This document defines the required Python coding style for project
+automation, NAS deployment scripts, agent pipeline tools, and related
+maintenance utilities. The NAS rules show one way to keep remote operations
+auditable; replace them with your own deployment target.
 
 The primary goal is clarity, explicitness, and long-term maintainability.
 

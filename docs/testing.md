@@ -11,8 +11,9 @@ These are different gates in one loop:
 | PR gate | Was this exact revision independently reviewed and validated? | Review and test receipts pinned to head/base |
 
 Use `$bdd` before dispatching a slice, `$tdd` in IMPL, and `$parity` for migration
-gates. The BDD and parity skills here are new portable extractions of the existing
-AMPB migration playbook, not claims that identically named installed skills existed.
+gates. The BDD and parity skills generalise the playbook the author used to migrate
+a Laravel/PHP game (AgileMedievalPeasantBoard) to a new stack slice by slice, with
+the old app as the oracle. The order example below stands in for any such feature.
 
 ## Contract example
 

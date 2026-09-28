@@ -1,15 +1,17 @@
 # Coach: bench, checkpoint, hand off
 
-## What was found
+## Why a coach is needed
 
-`http://localhost:3100/` identifies itself as **Paperclip** (observed 2026-09-28).
-The operator reports that the coach never worked. A separate prototype,
-`AgileMedievalCodexBoard/ai_tools/night-crew/crew-coach.ts`, routes by capability and
-account availability evidence. That source is conceptual provenance, not a verified
-Paperclip integration. Its raw vendor commands are not interchangeable JSON adapters.
+Agent accounts hit usage limits. Without intervention the task stalls, or worse,
+is recorded as done. The required behavior is:
+**observe rate limit → bench that account → preserve the same task → hand off to
+the next eligible agent**. A failure is never task completion.
 
-The required behavior is: **observe rate limit → bench that account → preserve the
-same task → hand off to the next eligible agent**. A failure is not task completion.
+Do not assume your agent supervisor does this. [Paperclip](paperclip-adapters.md), which
+the author runs to supervise agents, has no rate-limit failover and reports a run
+refused with HTTP 429 as `succeeded`. An earlier prototype in the author's own
+projects routed tasks by capability and account availability; this helper keeps
+that idea but makes the transition deterministic and testable.
 
 ## Shipped helper
 
@@ -45,13 +47,11 @@ phase, SHA, dirty changes and evidence; the next adapter resumes from that conte
 Ledger updates use an advisory file lock and atomic replacement. Use one ledger owner
 per host; it is not a distributed lease service. NightCrew controls cross-host claims.
 
-Paperclip has since been installed and exercised on one host; see
-[paperclip-adapters.md](paperclip-adapters.md). Two results bear directly on the
-requirements below: Paperclip ships no rate-limit failover of its own, and a run whose
-provider call was refused with HTTP 429 still reported `Status: succeeded`. Item 1 below
-is therefore confirmed necessary, not precautionary.
+## Controller integration still required
 
-## Controller / Paperclip integration still required
+The helper only computes the transition. Whatever supervises your workers (your own
+controller, Paperclip or similar) must do the rest. Item 1 is not precautionary: see
+the observed 429-reported-as-success case in [paperclip-adapters.md](paperclip-adapters.md).
 
 1. Capture provider refusal or usage-limit events (including exit 75 from adapters
    with that contract), not generic nonzero exits. Detect JSON-envelope failures even
@@ -65,8 +65,7 @@ is therefore confirmed necessary, not precautionary.
 5. Reconcile the result with tests and remote state. Authentication problems, missing
    product decisions and failed tests are distinct blockers, not quota failover.
 
-The handoff reports a Paperclip Git-auth conflict caused by company-wide GitHub
-credentials intercepting the Gitea bridge. A new integration must test its actual
-process environment and local Gitea credentials; a shell `git fetch` alone is insufficient.
-The report describes a successful canary, but this repository has not independently
-rerun it. No Paperclip settings were changed while preparing this kit.
+A known pitfall when a supervisor like Paperclip launches workers: GitHub
+credentials configured for the whole supervisor process can intercept Git requests
+meant for your Gitea server. Test the worker's actual process environment against
+Gitea; a `git fetch` from your own shell proving it works is not enough.

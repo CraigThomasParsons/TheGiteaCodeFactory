@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # spec-audit.sh — verify a slice's crosswalk (the spec) against the feature tree
-# (the truth) BEFORE filing rungs against it. The spec can be stale or wrong; a
+# (the truth) BEFORE filing issues against it. The spec can be stale or wrong; a
 # worker dispatched against a wrong spec builds the wrong thing faithfully.
 #
-# What it caught when run by hand at the slice-14 dispatch (2026-08-26):
+# Example of what it catches (from a real run on a migration project's
+# "14-leagues-public-pages" slice):
 #   - the umbrella named a tag (@slice-14-leagues-public-pages) that exists
 #     nowhere in the repo,
 #   - the crosswalk header undercounted the tree by 2 files / 17 scenarios,
 #   - event-inquiry-submission-review.feature was in the tag surface with ZERO
-#     crosswalk coverage (became issue #645).
+#     crosswalk coverage (which then became its own issue).
 # This script makes that check a formal dispatch step instead of a lucky habit.
 #
 # Usage: spec-audit.sh <features-dir> <crosswalk.md> [expected-tag]...
@@ -18,7 +19,7 @@
 #                   each is verified to actually exist in the tree
 #
 # Exit codes: 0 spec and tree agree on everything checked
-#             1 discrepancies found — file/fix them before filing rungs
+#             1 discrepancies found — fix them before filing issues
 #             2 usage error
 set -uo pipefail
 

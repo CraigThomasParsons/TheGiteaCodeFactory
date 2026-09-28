@@ -19,7 +19,7 @@ See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking g
 
 A **seam** is the public boundary you test at: the interface where you observe behavior without reaching inside. Tests live at seams, never against internals.
 
-**Choose test seams from the authorized issue and contract.** Record the public interfaces under test in the issue packet. In slice-pipeline mode, an existing approved contract/crosswalk and issue AC establish the seams; do not ask Craig to reconfirm them at every phase. If a genuinely new product boundary or ambiguous behavior requires a decision, surface that specific question and continue independent authorized work. For standalone TDD, establish the requested observable behavior before testing it.
+**Choose test seams from the authorized issue and contract.** Record the public interfaces under test in the issue packet. In slice-pipeline mode, an existing approved contract/crosswalk and issue AC establish the seams; do not ask the operator to reconfirm them at every phase. If a genuinely new product boundary or ambiguous behavior requires a decision, surface that specific question and continue independent authorized work. For standalone TDD, establish the requested observable behavior before testing it.
 
 ## Anti-patterns
 

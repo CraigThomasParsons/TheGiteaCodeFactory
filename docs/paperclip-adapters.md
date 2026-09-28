@@ -1,9 +1,10 @@
 # Paperclip adapters: observed behaviour
 
-Companion to [coach.md](coach.md), which records that the coach never worked and that
-no Paperclip settings were changed while preparing this kit. This page records a
-Paperclip instance actually being installed and exercised on a host, on 2026-09-26.
-It is evidence from one host, not a supported integration.
+[Paperclip](https://github.com/paperclipai/paperclip) is an open-source control
+plane for supervising agent runs. It is optional for this factory. These are field
+notes from installing and exercising it on the author's workstation in September
+2026, recorded because several behaviours directly affect the [coach](coach.md).
+They describe one host and one set of CLI versions, not a supported integration.
 
 Everything below was observed directly. Where a claim is inference it says so.
 
@@ -91,7 +92,7 @@ pointed at, logging each as:
 ```
 
 It prunes entries it does not consider its own. On the observed host the damage was
-amplified because that directory was a symlink to the operator's primary agent skills
+amplified because that directory was a symlink to the user's main agent skills
 library, so the deletions passed through to the real library. Restoring was possible
 only because an unrelated second copy happened to exist.
 

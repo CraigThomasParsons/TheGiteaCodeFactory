@@ -1,5 +1,8 @@
 # TypeScript Quality Architecture
 
+> **Example guide.** Written for AgileMedievalPeasantBoard's TypeScript front end; issue numbers, phases and paths refer to that repository; included as a worked example. Copy it into your
+> project and replace the project-specific parts. See [README.md](README.md).
+
 How TypeScript code quality is checked in this repo, who owns which check,
 and the staged rollout order for new tooling.
 

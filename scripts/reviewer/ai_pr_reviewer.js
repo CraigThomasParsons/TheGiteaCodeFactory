@@ -318,7 +318,7 @@ export function findSecretLikeContent(diffContent) {
  * @returns {string} Prompt instructions including the diff.
  */
 export function buildReviewPrompt(diffContent, jsStyle, tsStyle) {
-    return `You are an automated code reviewer for the AgileMedievalPeasantBoard repository.
+    return `You are an automated code reviewer for the ${GITEA_REPOSITORY || "target"} repository.
 Review only the added and changed lines in the diff.
 
 === JavaScript / Node Style Guide ===

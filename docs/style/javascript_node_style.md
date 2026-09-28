@@ -1,6 +1,9 @@
 # JavaScript / Node Coding Style and Commenting Conventions (Project Standard)
 
-This document defines required JavaScript and Node.js coding style for ArcaneArcadeMachineFactory runtime and tooling.
+> **Example guide.** Written for the author's ArcaneArcadeMachineFactory (a Node.js project); included as a worked example. Copy it into your
+> project and replace the project-specific parts. See [README.md](README.md).
+
+This document defines required JavaScript and Node.js coding style for the project's runtime and tooling.
 
 The goal is clarity, explicitness, and long-term maintainability.
 

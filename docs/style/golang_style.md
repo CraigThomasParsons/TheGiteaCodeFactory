@@ -1,6 +1,9 @@
 # Golang Coding Style and Commenting Conventions (Project Standard)
 
-This document defines the required Go coding style for Gopher, ThePostalService, and related tooling within the Auralis project.
+> **Example guide.** Written for the author's Go services; included as a worked example. Copy it into your
+> project and replace the project-specific parts. See [README.md](README.md).
+
+This document defines the required Go coding style for the project's services and tooling.
 The primary goal is extreme clarity, explicitness, and long-term maintainability, overriding the traditional Go philosophy of minimal commenting.
 
 ---
@@ -108,7 +111,7 @@ filename := filepath.Base(markerPath)
 jobID := strings.Replace(filename, "_handoff.md", "", 1)
 
 // Throw a fatal error immediately if the output contract is missing, 
-// since Vera physically cannot test a void payload.
+// since the downstream test stage cannot test a void payload.
 if len(jobID) == 0 {
     return fmt.Errorf("empty job ID payload received")
 }

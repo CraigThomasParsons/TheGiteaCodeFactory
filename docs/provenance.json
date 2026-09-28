@@ -1,6 +1,6 @@
 {
   "captured": "2026-09-28",
-  "note": "Local sources adapted; source hashes are provenance, not hashes of the adapted files. No license is inferred for upstream work.",
+  "note": "Where each imported file came from. Source paths are on the author's machine (their agent skill directories and private project checkouts) and are not reachable by readers; they are kept as a record of origin. Source hashes are of the original files, not the adapted copies. Third-party licences are listed in THIRD_PARTY_NOTICES.md; everything else is covered by the repository's MIT LICENSE.",
   "files": [
     {
       "source": "~/.codex/skills/tdd/SKILL.md",

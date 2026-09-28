@@ -12,7 +12,8 @@ A JSON schema establishes response shape, not completion.
 Use the documented `--state` per repository. The driver can run for an extended
 period, but it is not a reboot-resilient service and does not supply a finite overall
 deadline; the operator's supervising service must enforce its operating window and
-reconcile surviving workers at shutdown. Use NightCrew scheduling where available.
+reconcile surviving workers at shutdown. A coordinator with scheduling (such as
+TheNightCrew's overnight windows) can own that.
 
 On restart inspect the claim, recorded process, branch lock, attempt outputs,
 Git state and remote PR before retry. Never delete a lock file solely because a
@@ -35,8 +36,8 @@ claim still needs reconciliation. Preserve uncommitted changes and prior attempt
 
 ## Credential boundaries
 
-`.env`, `secrets/`, state, logs and tokens are ignored. Credentials are not copied
-from local services. Gitea PAT, runner registration token, NightCrew token, provider
+`.env`, `secrets/`, state, logs and tokens are git-ignored, and the kit ships no
+credentials. Gitea PAT, runner registration token, NightCrew token, provider
 login and GitHub release credentials have different roles. Configure them explicitly
 per host/service and test that exact process environment. Use TLS for remote secrets.
 Never commit provider transcripts that may contain credentials or private diff content.

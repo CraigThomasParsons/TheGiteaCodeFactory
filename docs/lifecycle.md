@@ -14,7 +14,7 @@ proven on merged code. A release is a separate, finite milestone.
 | Feature intent and approved changes | Feature spec and linked Gitea issues |
 | Behavior contract | BDD scenarios, acceptance crosswalk, pinned oracle when applicable |
 | Issue/PR history and merged code | Gitea |
-| Which computer owns a job | TheNightCrew atomic claim |
+| Which computer owns a job | Coordinator's atomic claim (TheNightCrew in the author's setup) |
 | Which local process writes a branch | Worker process plus branch/worktree lock |
 | Agent availability | Coach observations, account cooldown and configured capabilities |
 | Worker execution | Repository-local adapter / tmux pipeline |
@@ -22,7 +22,7 @@ proven on merged code. A release is a separate, finite milestone.
 | Released revision and assets | Release manifest, matching GitHub refs and draft release |
 
 Paperclip can supervise agent runs; it must consume the same claim and receipts,
-not create an independent task queue that races NightCrew. Gitea Actions runs
+not create an independent task queue that races the coordinator. Gitea Actions runs
 validation/advisory review; it is not the long-lived agent supervisor.
 
 ## Gates
@@ -33,7 +33,7 @@ validation/advisory review; it is not the long-lived agent supervisor.
    explicitly mark parity not applicable.
 3. **Queue:** create/reuse issues and dependencies; mark ready only after prerequisite
    evidence exists. Record a stable release cohort rather than a forever-growing queue.
-4. **Claim:** NightCrew assigns one job to one eligible worker. Keep one serial writer
+4. **Claim:** the coordinator assigns one job to one eligible worker. Keep one serial writer
    per branch even when there are many worker computers.
 5. **Implement:** IMPL → SIMPLIFY → ARCHITECTURE → REVIEW → PR, each with fresh context,
    same issue, isolated worktree and immutable attempt evidence. TDD guides implementation;
