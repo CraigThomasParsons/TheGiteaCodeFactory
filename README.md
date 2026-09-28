@@ -248,6 +248,7 @@ bash scripts/check.sh
 10. [Coordinator](docs/nightcrew.md): queue and claim contract
 11. [Releases](docs/releases.md): GitHub push and draft release
 12. [Operations](docs/operations.md): resume, rollback, secrets
+13. [Roadmap](docs/roadmap.md): where this is going, including agent handovers through Gitea issues
 
 ## About the examples
 

@@ -13,6 +13,11 @@ refused with HTTP 429 as `succeeded`. An earlier prototype in the author's own
 projects routed tasks by capability and account availability; this helper keeps
 that idea but makes the transition deterministic and testable.
 
+What it doesn't do yet: there is no heartbeat, so nothing notices a worker
+nearing its limit or going silent, and handover notes are not written to the
+Gitea issue. The [roadmap](roadmap.md#2-gitea-issues-as-handover-documents)
+describes the planned early-warning, hook and heartbeat design.
+
 ## Shipped helper
 
 `scripts/coach.py` persists a private account cooldown ledger and emits a new handoff

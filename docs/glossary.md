@@ -52,6 +52,8 @@ whether you can get it and what to substitute if you cannot.
 | **Coach** | The logic that notices an agent account hit a rate limit and moves the same task to another eligible agent. |
 | **Bench** | Put an account on cooldown so nothing is dispatched to it until its limit resets. |
 | **Handoff** | Passing an unfinished task, with its branch, worktree, dirty changes and evidence, to the next agent without restarting it. |
+| **Handover comment** | A structured comment on the Gitea issue recording branch, commit, what's done, what's next and why work stopped, so another agent or person can continue. Planned; see [roadmap.md](roadmap.md#handover-comment-format). |
+| **Heartbeat** | A regular health check of each worker: process alive, recent progress, usage against its limit. Planned; see [roadmap.md](roadmap.md#the-heartbeat-is-rob-coming-in-today). |
 | **Exit 75** | `EX_TEMPFAIL`. Some agent adapters use it to mean "provider exhausted, retry later". Only trust it where the adapter documents that contract. |
 
 ## Tools named in this guide
