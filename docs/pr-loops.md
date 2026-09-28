@@ -38,8 +38,11 @@ controller adds `--execute` only after verifying project auto-merge policy.
 The script does not load the project policy JSON or infer user authorization.
 
 Flow: `review:requested` → independent review → `review:findings` → repair →
-`review:resolved` → `review:requested` → current-head clear → merge.
+`review:resolved` → `review:requested` → current head clear (`review:clear`) → merge.
 Unresolved decisions use `review:needs-human`. Remove only obsolete state labels.
+The labels are `review:requested`, `review:in-progress`, `review:findings`,
+`review:resolving`, `review:resolved`, `review:clear` and `review:needs-human`;
+create them in each enrolled repository.
 
 The helper requires matching repository, PR, base/head, source/target branch
 identities, no unresolved findings, both review axes clear, current validation
@@ -47,6 +50,25 @@ contexts successful, an open/non-draft/mergeable PR and no conflicting labels.
 It also blocks on any published pending/failing current-head status. It rechecks
 before a non-force merge and verifies the resulting merged SHA. Server-side
 protection remains essential for concurrent base or label changes.
+
+## Status checks the merge gate waits for
+
+The merge gate only merges when every check listed in `required_contexts` has
+succeeded on the PR's current head, and it also refuses if *any* published check
+on that head is pending or failing, including the advisory reviewer below. The
+reviewer's job succeeds whatever its verdict and fails only on errors (missing API
+key, every provider unavailable); rerun it after fixing the cause, or the gate
+stays blocked.
+
+Copy [templates/pr-validation.yml](../templates/pr-validation.yml) to
+`.gitea/workflows/` and replace its placeholder step with the project's tests.
+Until you do, it fails on purpose, so a forgotten template never looks green.
+Gitea names Actions status checks `<workflow name> / <job name> (<event>)`; the
+template produces `Project validation / validate (pull_request)`. Use that exact
+string in `required_contexts` and as a required check in branch protection.
+
+Projects without CI can instead run their tests on the worker and publish a
+`codex/review-validation` status, described in the receipt contract.
 
 Read the [receipt contract](../skills/pr-review-resolve-loop/references/receipt.md).
 A timestamp or label alone is not proof. Local test results can be published as

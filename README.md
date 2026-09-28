@@ -1,5 +1,7 @@
 # The Gitea Code Factory
 
+[![Check](https://github.com/CraigThomasParsons/TheGiteaCodeFactory/actions/workflows/check.yml/badge.svg)](https://github.com/CraigThomasParsons/TheGiteaCodeFactory/actions/workflows/check.yml)
+
 A blueprint, with working parts, for letting AI coding agents (Codex, Claude,
 Gemini and others) deliver software on a self-hosted Gitea server: from a written
 feature description to reviewed, tested, merged code and a draft release, over
@@ -37,6 +39,8 @@ New to the vocabulary (slice, oracle, parity, claim, receipt, bench)? Keep the
 - **Survive rate limits.** When an agent account hits its usage limit, the coach
   puts that account on cooldown and hands the *same* task (branch, uncommitted
   work, evidence) to the next eligible agent instead of restarting or failing it.
+- **Gate merges on your own CI.** A Gitea Actions workflow runs the project's
+  tests on every PR and publishes the status check the merge gate requires.
 - **Add an advisory AI review in CI.** A Gitea Actions workflow posts a
   model-written review on each PR, with a fallback chain of providers and a
   secret-pattern scan of the diff.
@@ -82,6 +86,36 @@ flowchart LR
    then are the issue's acceptance criteria marked proven.
 8. **Release.** Once every issue in the release cohort is accounted for, validate
    the release commit, push explicit refs to GitHub and draft the release.
+
+### A PR's trip through the review loop
+
+This is the part most people adopt first, and it works without the rest.
+
+1. A PR is opened and labelled `review:requested`. Gitea Actions starts running
+   the project's tests on it, and optionally posts an advisory AI review.
+2. The review loop picks it up, runs the `code-review` skill (independent
+   Standards and Spec reviews) and posts the result as a PR comment. The label
+   becomes `review:findings`, or `review:clear` if there is nothing to fix.
+3. The resolve loop picks up `review:findings` PRs, fixes the findings on the PR's
+   branch, reruns the tests, pushes and sends it back to `review:requested`.
+4. Steps 2–3 repeat on each new head, up to three rounds. A PR that still isn't
+   clear, or needs a human decision, is parked as `review:needs-human`.
+5. Once a PR is `review:clear` *and* its tests have passed on that exact commit,
+   the merge gate merges it into the target branch (for example `develop`) and
+   verifies the merge.
+
+### Where things run
+
+| Runs in Gitea Actions (per PR, short-lived) | Runs on a worker computer (long-lived, needs agent logins) |
+|---|---|
+| The project's tests (`pr-validation.yml`) | The review and resolve loops |
+| The advisory AI review (`pr-ai-review.yml`) | The implementation pipeline (tmux sessions) |
+| | The coach and merge gate |
+
+The agent work stays off Actions on purpose. Agent sessions run for a long time,
+need authenticated CLIs and write to branches, and CI jobs are short-lived,
+disposable and run PR code. On the worker, start the loops on demand by asking
+your agent, or on a schedule with cron or a systemd timer.
 
 Four design rules hold throughout:
 
@@ -130,8 +164,12 @@ Code: *"Use tdd to add rate limiting to the login endpoint"*. Useful on their ow
    [templates/factory-project.example.json](templates/factory-project.example.json):
    its validation commands, required status checks, merge method and whether
    auto-merge is allowed.
-3. Create the `review:*` labels and turn on branch protection.
-4. Point the agent at a PR:
+3. Copy [templates/pr-validation.yml](templates/pr-validation.yml) to
+   `.gitea/workflows/` and replace its placeholder with the project's tests. This
+   produces the status check the merge gate waits for.
+4. Create the `review:*` labels and turn on branch protection, with that check
+   required.
+5. Point the agent at a PR:
 
    ```text
    Use $pr-review-resolve-loop for owner/project on the configured Gitea server.
@@ -164,7 +202,8 @@ Treat this as a documented blueprint with tested parts, not a turnkey product.
 | Component | State |
 |---|---|
 | Skills, coach, parity comparator, merge gate, pipeline driver, advisory reviewer, installer | Unit-tested (104 tests pass locally) |
-| Gitea + Actions Compose recipe | Config validated; you run it |
+| Gitea + Actions Compose recipe and workflow templates | Config validated; you run it |
+| This kit's own CI | Runs every check on GitHub Actions for each push |
 | Implementation pipeline | Drives **Codex** only; other agents need their own adapter |
 | Coordinator | The author's TheNightCrew is not published. Its worker client is in [integrations/nightcrew/](integrations/nightcrew/) and [docs/nightcrew.md](docs/nightcrew.md) describes the contract a substitute must meet |
 | Coach | Decides the handoff, but isn't yet connected to live rate-limit events or automatic worker launch |
@@ -190,7 +229,7 @@ bash scripts/check.sh
 | [docs/](docs/) | The guide |
 | [skills/](skills/) | 19 agent skills, some with helper scripts and tests |
 | [scripts/](scripts/) | Bootstrap, checks, skill installer, coach, parity comparator, CI reviewer |
-| [templates/](templates/) | Project config, coach inputs, release manifest, Actions workflows |
+| [templates/](templates/) | Project config, coach inputs, release manifest, and the Gitea Actions workflows: smoke test, PR validation, advisory AI review |
 | [docker-compose.yml](docker-compose.yml), [infra/](infra/) | Gitea 1.27.3 and Actions runner |
 | [integrations/nightcrew/](integrations/nightcrew/) | TheNightCrew worker client snapshot, with tests |
 | [docs/style/](docs/style/) | Example coding standards that reviewers check against |

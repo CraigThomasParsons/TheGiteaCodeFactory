@@ -28,8 +28,11 @@ For each active project:
    actual BDD/parity commands and the selected controller. Preserve existing rules.
 5. Choose **one** PR controller: the standalone `review:*` skills or NightCrew's
    `night:*` worker. Register the repository with NightCrew if it owns delivery.
-6. Configure credentials locally and in Gitea Actions secrets where needed. Create
-   review-state labels and required validation contexts; enable branch protection.
+6. Configure credentials locally and in Gitea Actions secrets where needed. Copy
+   `templates/pr-validation.yml` to `.gitea/workflows/` and replace its placeholder
+   with the project's tests; it produces the status check the merge gate waits for.
+   Create the review-state labels and enable branch protection with that check
+   required (see [pr-loops.md](pr-loops.md#status-checks-the-merge-gate-waits-for)).
 7. Run the Actions smoke, then a controlled BDD → implementation → findings → repair
    → independent re-review canary. Verify old head clearance is rejected.
 8. Enable `auto_merge` only after the operator has granted that project scope and the

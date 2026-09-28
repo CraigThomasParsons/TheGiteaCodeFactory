@@ -1,0 +1,32 @@
+# Runs the project's own tests on every PR and publishes the status check the
+# merge gate waits for. Copy to .gitea/workflows/pr-validation.yml in the target
+# repository and replace the placeholder step.
+#
+# Gitea names the resulting status check "<workflow name> / <job name> (<event>)",
+# so this file produces:
+#
+#   Project validation / validate (pull_request)
+#
+# Put that exact string in required_contexts in .factory/project.json, and mark
+# it required in the branch protection rule. If you rename the workflow or job,
+# update both.
+name: Project validation
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  validate:
+    runs-on: factory-node
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the project's validation commands
+        run: |
+          # Replace these lines with the commands listed in validation_commands
+          # in .factory/project.json, for example:
+          #   npm ci && npm test
+          #   composer install && php artisan test
+          #   pip install -r requirements.txt && pytest
+          # The factory-node image only has Node, Git and Bash; other stacks need
+          # their own runner label and image (see docs/setup.md).
+          echo "Replace the placeholder in pr-validation.yml with this project's tests." >&2
+          exit 1

@@ -8,7 +8,7 @@
   "merge_method": "squash",
   "max_prs_per_batch": 2,
   "max_repair_rounds": 3,
-  "required_contexts": ["project-validation"],
+  "required_contexts": ["Project validation / validate (pull_request)"],
   "validation_commands": ["REPLACE_WITH_PROJECT_TEST_COMMAND"],
   "bdd_features": "tests/bdd/features",
   "parity_required": false,
