@@ -45,9 +45,9 @@ Compose and runner config when running a second stack.
 Enable Actions in a pilot repository and copy `templates/actions-smoke.yml` to
 `.gitea/workflows/factory-smoke.yml`. Commit it through that repository's normal
 workflow, dispatch it, and verify a successful job. `factory-node` maps to
-`node:22-bookworm` with Git and Bash. Projects needing PHP/.NET or other runtimes
-must declare another suitable runner label/image; this image is not a universal
-application build environment.
+`node:22-bookworm` with Node, Python 3, Git and Bash, but no Docker CLI. Projects
+needing PHP/.NET or other runtimes must declare another suitable runner
+label/image; this image is not a universal application build environment.
 
 The runner mounts the host Docker socket. Use this on a dedicated trusted runner
 host and do not admit untrusted workflow authors. Even with job socket mounting

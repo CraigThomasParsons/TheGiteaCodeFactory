@@ -26,7 +26,8 @@ jobs:
           #   npm ci && npm test
           #   composer install && php artisan test
           #   pip install -r requirements.txt && pytest
-          # The factory-node image only has Node, Git and Bash; other stacks need
-          # their own runner label and image (see docs/setup.md).
+          # The factory-node image only has Node, Python 3, Git and Bash (no Docker
+          # CLI); other stacks need their own runner label and image (see
+          # docs/setup.md).
           echo "Replace the placeholder in pr-validation.yml with this project's tests." >&2
           exit 1
