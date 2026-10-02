@@ -71,7 +71,8 @@ Pick one:
 
 - run only the language tests in CI and keep the compose validation local;
 - give the runner an image that includes the Docker CLI, and declare it under a
-  different label, since `factory-node` is documented as Node/Git/Bash only;
+  different label, since `factory-node` (Node 22, Python 3.11, Git and Bash) has
+  no Docker CLI;
 - split `check.sh` so the compose check is a separate, optional target.
 
 The same applies to any project whose validation needs a runtime the chosen image
