@@ -27,18 +27,23 @@ equivalent, with any token scope. Get it from
 **Settings → Actions → Runners → Create new Runner**, at site, organization or
 repository level depending on how widely the runner should serve.
 
-Registering a standalone runner against an existing Gitea:
+Registering a standalone runner against an existing Gitea, using the same runner
+image as the shipped `docker-compose.yml`. Put only the token in
+`secrets/runner-token` with your editor (do not paste it into terminal history),
+then run this from the root of your TheGiteaCodeFactory clone:
 
 ```bash
+chmod 600 secrets/runner-token
 docker run -d --name factory-runner \
   --restart unless-stopped \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v factory-runner-data:/data \
+  -v "$PWD/secrets/runner-token:/run/secrets/runner_token:ro" \
   -e GITEA_INSTANCE_URL=https://gitea.example.com \
-  -e GITEA_RUNNER_REGISTRATION_TOKEN=<token from the UI> \
+  -e GITEA_RUNNER_REGISTRATION_TOKEN_FILE=/run/secrets/runner_token \
   -e GITEA_RUNNER_NAME=factory-runner \
   -e GITEA_RUNNER_LABELS='factory-node:docker://node:22-bookworm' \
-  gitea/act_runner:0.2.13
+  docker.io/gitea/runner:4.0.0
 ```
 
 Confirm with `docker logs factory-runner`; `declare successfully` means the label
