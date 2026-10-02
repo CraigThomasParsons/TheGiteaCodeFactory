@@ -1,0 +1,24 @@
+{
+  "server": "http://192.168.2.48:3000",
+  "repo": "ElasticGun/TheGiteaCodeFactory",
+  "base_branch": "develop",
+  "assignee": "craigpars",
+  "review_mode": "review-and-repair",
+  "auto_merge": false,
+  "merge_method": "squash",
+  "max_prs_per_batch": 2,
+  "max_repair_rounds": 3,
+  "required_contexts": [
+    "Project validation / validate (pull_request)"
+  ],
+  "validation_commands": [
+    "bash scripts/check-ci.sh"
+  ],
+  "bdd_features": null,
+  "parity_required": false,
+  "oracle_revision": null,
+  "allowed_agents": [
+    "codex"
+  ],
+  "factory_revision": "52029808549eb2388010de7e50a5c562b38c169d"
+}

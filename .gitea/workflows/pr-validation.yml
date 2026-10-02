@@ -1,0 +1,23 @@
+# Runs this repository's own validation on every PR and publishes the status check
+# the merge gate waits for. Gitea names it "<workflow> / <job> (<event>)", so this
+# file produces exactly:
+#
+#   Project validation / validate (pull_request)
+#
+# That string must match required_contexts in .factory/project.json and the
+# required check in branch protection. Renaming the workflow or job breaks both.
+#
+# This calls check-ci.sh, not check.sh: the factory-node image (node:22-bookworm)
+# has Node, Python and Git but no Docker CLI, and check.sh ends with a
+# `docker compose config` step. See docs/gitea-prerequisites.md.
+name: Project validation
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  validate:
+    runs-on: factory-node
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run runner-safe validation
+        run: bash scripts/check-ci.sh

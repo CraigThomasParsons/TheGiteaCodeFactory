@@ -2,7 +2,8 @@
 
 This page separates what is proven by tests from what still needs a live run, so
 you know which parts to trust and which to canary yourself. The table is the last
-recorded local run of `bash scripts/check.sh` plus the Moonlighter worker tests
+recorded local run of `bash scripts/check.sh` (which calls check-ci.sh and
+check-local.sh) plus the Moonlighter worker tests
 (2026-09-28); rerun them after cloning.
 
 | Check | Result |
