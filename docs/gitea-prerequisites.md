@@ -96,7 +96,15 @@ names the missing scope, so read it rather than assuming the token is invalid.
 ## 5. Review-state labels, per repository
 
 The seven labels in [pr-loops.md](pr-loops.md) must exist in every enrolled
-repository. Creating them over the API:
+repository. Creating them over the API, from any directory, after setting these
+four values (replace the placeholders with your own server, token and repository):
+
+```bash
+export GITEA_SERVER_URL=https://gitea.example.com
+export GITEA_TOKEN=<token with write:repository>
+export OWNER=<owner>
+export REPO=<project>
+```
 
 ```bash
 while IFS='|' read -r name color desc; do
