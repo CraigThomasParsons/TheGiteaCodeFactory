@@ -12,7 +12,7 @@ as a side effect of editing this kit.
 
 Validate using `bash scripts/check.sh` locally; CI runs `bash scripts/check-ci.sh`,
 which omits the Docker Compose parse because the `factory-node` runner image has no
-Docker CLI (see docs/gitea-prerequisites.md). Moonlighter has its own suite: `php artisan
+Docker CLI (see docs/setup.md). Moonlighter has its own suite: `php artisan
 test` inside `moonlighter/` and `python3 -m pytest moonlighter/tests/Python`.
 Change Moonlighter code in its private upstream and bring it over with
 `scripts/sync-moonlighter.sh`; only its README, CLAUDE.md, CONTEXT.md,

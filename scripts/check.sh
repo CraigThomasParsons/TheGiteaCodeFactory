@@ -3,7 +3,7 @@
 #
 # CI should invoke check-ci.sh directly rather than this script, because the
 # documented factory-node runner image has no Docker CLI. See
-# docs/gitea-prerequisites.md.
+# docs/setup.md.
 set -euo pipefail
 here="$(dirname "$0")"
 

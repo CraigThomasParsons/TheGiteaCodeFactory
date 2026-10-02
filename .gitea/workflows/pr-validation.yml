@@ -9,7 +9,7 @@
 #
 # This calls check-ci.sh, not check.sh: the factory-node image (node:22-bookworm)
 # has Node, Python and Git but no Docker CLI, and check.sh ends with a
-# `docker compose config` step. See docs/gitea-prerequisites.md.
+# `docker compose config` step. See docs/setup.md.
 name: Project validation
 on:
   pull_request:
