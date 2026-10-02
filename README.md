@@ -260,16 +260,17 @@ bash scripts/check.sh
 1. [Glossary](docs/glossary.md)
 2. [Lifecycle](docs/lifecycle.md): ownership, gates, failure handling
 3. [Setup](docs/setup.md): Gitea and Actions, new or existing server
-4. [Catalog](docs/catalog.md): every skill and script
-5. [Onboarding](docs/onboarding.md): canary first, then each repository
-6. [PR loops](docs/pr-loops.md): review, repair, merge gate, CI reviewer
-7. [Testing](docs/testing.md): BDD, TDD and parity
-8. [Coach](docs/coach.md): rate-limit bench and handoff
-9. [Paperclip field notes](docs/paperclip-adapters.md): why a supervisor's "succeeded" can't be trusted
-10. [Coordinator](docs/moonlighter.md): queue and claim contract
-11. [Releases](docs/releases.md): GitHub push and draft release
-12. [Operations](docs/operations.md): resume, rollback, secrets
-13. [Roadmap](docs/roadmap.md): where this is going, including agent handovers through Gitea issues
+4. [Gitea prerequisites](docs/gitea-prerequisites.md): runner labels, token scopes, review labels, mirroring limits
+5. [Catalog](docs/catalog.md): every skill and script
+6. [Onboarding](docs/onboarding.md): canary first, then each repository
+7. [PR loops](docs/pr-loops.md): review, repair, merge gate, CI reviewer
+8. [Testing](docs/testing.md): BDD, TDD and parity
+9. [Coach](docs/coach.md): rate-limit bench and handoff
+10. [Paperclip field notes](docs/paperclip-adapters.md): why a supervisor's "succeeded" can't be trusted
+11. [Coordinator](docs/moonlighter.md): queue and claim contract
+12. [Releases](docs/releases.md): GitHub push and draft release
+13. [Operations](docs/operations.md): resume, rollback, secrets
+14. [Roadmap](docs/roadmap.md): where this is going, including agent handovers through Gitea issues
 
 ## About the examples
 
