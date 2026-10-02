@@ -8,7 +8,7 @@ description: Plan dependency-ordered repository work and reconcile cross-project
 Inventory canonical repository identities, exact revisions, issues, PRs and current workers.
 Split the requested outcome into repository-local issue packets with dependencies and
 observable acceptance criteria. Re-observe each repository before declaring it ready.
-Use TheNightCrew for claims when enabled; one owning controller per repository.
+Use Moonlighter for claims when enabled; one owning controller per repository.
 Hand authorized implementation packets to the repository worker. Reconcile actual
 merged evidence, not exit codes or reported intentions. Keep release readiness tied
 to a finite issue-set snapshot. Report blocked members explicitly; do not silently

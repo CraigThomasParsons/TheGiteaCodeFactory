@@ -23,7 +23,7 @@ existing scheme; do not automatically apply a major/minor version rule to every 
 ## Controlled mirror
 
 Prefer an explicit release branch/tag push over an always-on Gitea push mirror.
-The inspected NightCrew worker holds PRs in repositories with outbound mirrors.
+The inspected Moonlighter worker holds PRs in repositories with outbound mirrors.
 Enabling such a mirror is a controller-policy change, not just a URL setting.
 
 In a dedicated release checkout, verify Gitea's source SHA and the GitHub repository

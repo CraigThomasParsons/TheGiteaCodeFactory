@@ -21,7 +21,7 @@ supervisor like Paperclip.
 |---|---|---|
 | 1 | [Prove the review loop live](#1-prove-the-review-loop-live) | Nobody should rely on a loop that hasn't completed once |
 | 2 | [Gitea issues as handover documents](#2-gitea-issues-as-handover-documents) | Work must survive an agent stopping, the way it survives a person going home sick |
-| 3 | [A built-in coordinator](#3-a-built-in-coordinator) | Other people can't get TheNightCrew, so today they can't run the full factory |
+| 3 | [Make Moonlighter fit the factory](#3-make-moonlighter-fit-the-factory) | The coordinator is included and shares the review labels; timezone, requeue and packaging remain |
 | 4 | [One-command project setup](#4-one-command-project-setup) | Onboarding is nine manual steps |
 | 5 | [A background service and dashboard](#5-a-background-service-and-dashboard) | Replace cron and babysitting tmux; show what every agent is doing |
 | 6 | [More agents](#6-more-agents) | The implementation pipeline only drives Codex |
@@ -66,7 +66,7 @@ a lost network connection, a dead worker computer or an expired login.
   packet (branch, worktree, commit, uncommitted changes, evidence). It only acts
   **after** it is told a rate limit happened and the old agent has stopped.
 - **There is no heartbeat.** Nothing checks whether a worker is still healthy or
-  about to hit its limit. The NightCrew worker only keeps its local lock held
+  about to hit its limit. The Moonlighter worker only keeps its local lock held
   while its child processes run.
 - Handover notes are not written to the Gitea issue. The handoff packet is a
   private JSON file.
@@ -236,17 +236,21 @@ could not.
 - [ ] Test Grok Build against a real limit: what its JSON output reports
 - [ ] Tests for each path: early wrap-up, hard limit, silent downgrade, crash with no signal, no eligible agent
 
-## 3. A built-in coordinator
+## 3. Make Moonlighter fit the factory
 
-Today the full factory needs TheNightCrew, which is not published. Either:
+Moonlighter, the coordinator, is now included in [moonlighter/](../moonlighter/)
+and runs on SQLite, so a single computer needs nothing extra. What's left:
 
-- **Build a small coordinator into the tool** (SQLite, single machine). This covers
-  most new users, who start on one computer. Recommended first.
-- **Publish TheNightCrew** for multi-machine setups, or document its API well
-  enough that someone could reimplement it ([nightcrew.md](nightcrew.md)).
-
-Either way, fix the known gaps first: issue jobs need a safe requeue path, and
-"done" must require merged code plus acceptance evidence.
+- [x] **One review vocabulary.** The PR labeller now uses the factory's
+      `review:clear` and `gitea-codex-review:v1`, and still accepts the older
+      `review:clean` and `pulse-*` markers.
+- [ ] **Configurable timezone** for schedule windows and the worker's operating
+      window (currently fixed to America/Toronto).
+- [ ] **Issue-job requeue** after a quota failure, and "done" only with merged code
+      plus acceptance evidence.
+- [ ] **A Compose service** so `docker compose up` starts Moonlighter next to Gitea.
+- [ ] **Finish the rename** of internal identifiers (`NIGHT_CREW_*`, `nightcrew:*`,
+      `night_crew_jobs`) once the private upstream is retired.
 
 ## 4. One-command project setup
 

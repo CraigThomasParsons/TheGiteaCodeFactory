@@ -1,5 +1,9 @@
 # Gitea and Actions setup
 
+Commands in this page run from the root of your cloned **TheGiteaCodeFactory**
+repository. If you have not cloned it yet, start with [getting-started.md](getting-started.md).
+The example hostnames and account names must be replaced with your own.
+
 ## New standalone installation
 
 Use a dedicated trusted Linux host with Docker Engine and Compose. The checked-in
@@ -15,7 +19,7 @@ docker compose ps
 
 Open `http://localhost:3300`, finish Gitea's installer and explicitly create the
 administrator account there. The web port is 3300 and SSH is 2223 so the stack can
-sit beside an existing Gitea (3000/22) or Paperclip (3100) on the same host. Registration is disabled after setup. Keep the
+avoid commonly occupied development ports. Choose other free ports in `.env` if needed. Registration is disabled after setup. Keep the
 configured database type/path and external URL consistent with Compose.
 
 For remote workers, change `.env` before starting: set the externally reachable
@@ -68,7 +72,7 @@ export GITEA_TOKEN_FILE="$HOME/.config/gitea-code-factory/token"
 Create that private token file yourself, readable only by your account. Use a
 Gitea token with the repository, issue/review and status permissions needed by the
 selected operation. It is distinct from the runner registration token and from
-the NightCrew worker token. Agent login remains on the worker host; Compose does
+the Moonlighter worker token. Agent login remains on the worker host; Compose does
 not log in to Codex, Claude, Gemini or Paperclip.
 
 ## Sources and version maintenance

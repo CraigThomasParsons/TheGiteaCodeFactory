@@ -16,7 +16,7 @@ done only when its acceptance criteria are proven on merged code.
 New to the vocabulary (slice, oracle, parity, claim, receipt, bench)? Keep the
 [glossary](docs/glossary.md) open while you read.
 
-## What it can do
+## Intended workflow and included components
 
 - **Turn feature descriptions into executable contracts.** Acceptance criteria
   become Gherkin (BDD) scenarios, plus a *crosswalk* tying each criterion to the
@@ -36,14 +36,19 @@ New to the vocabulary (slice, oracle, parity, claim, receipt, bench)? Keep the
 - **Merge only with proof.** A separate, deterministic merge gate merges only when
   a private receipt matches the exact head and base, both reviews are clear and
   required checks pass. It then verifies the resulting merge commit.
-- **Survive rate limits.** When an agent account hits its usage limit, the coach
-  puts that account on cooldown and hands the *same* task (branch, uncommitted
-  work, evidence) to the next eligible agent instead of restarting or failing it.
+- **Prepare rate-limit handoffs.** Given a confirmed rate-limit event, the coach
+  helper puts the account on cooldown and writes a packet for the next eligible
+  agent, preserving the same task and evidence. Monitoring and automatic launch
+  still need controller integration; see [coach setup](docs/coach.md).
 - **Gate merges on your own CI.** A Gitea Actions workflow runs the project's
   tests on every PR and publishes the status check the merge gate requires.
 - **Add an advisory AI review in CI.** A Gitea Actions workflow posts a
   model-written review on each PR, with a fallback chain of providers and a
   secret-pattern scan of the diff.
+- **Enroll many repositories from one place.** Moonlighter, the included
+  coordinator, keeps the list of repositories the factory works on, labels their
+  PRs for the review loop, turns `ready-for-agent` issues into jobs, and shows
+  who is working on what on a live dashboard.
 - **Prepare releases safely.** When a frozen set of issues is complete, push
   explicit refs to GitHub and prepare a *draft* release. Publishing stays a human
   decision.
@@ -74,9 +79,10 @@ flowchart LR
    `parity` skill; greenfield projects mark parity *not applicable*.
 3. **Queue.** The `dispatcher` skill audits coverage and creates Gitea issues with
    dependencies. Issues become ready only once their prerequisites have evidence.
-4. **Claim.** A coordinator gives each job to exactly one worker computer, so two
-   machines never write the same branch. With a single worker you can skip this:
-   local branch locks already enforce one writer per branch.
+4. **Claim.** [Moonlighter](moonlighter/), the coordinator, gives each job to
+   exactly one worker computer, so two machines never write the same branch. It
+   also holds the list of enrolled repositories. With a single worker you can
+   skip claims: local branch locks already enforce one writer per branch.
 5. **Implement.** The worker runs the five phases above, each in a fresh
    session. The PR phase hands the PR to the review controller; workers never merge.
 6. **Review and repair.** The review loop labels the PR (`review:requested →
@@ -91,11 +97,15 @@ flowchart LR
 
 This is the part most people adopt first, and it works without the rest.
 
-1. A PR is opened and labelled `review:requested`. Gitea Actions starts running
-   the project's tests on it, and optionally posts an advisory AI review.
+1. A PR is opened in an enrolled repository and labelled `review:requested`
+   manually for this standalone workflow. Gitea Actions runs the configured tests
+   and optional advisory review. Moonlighter also has a PR labeller, but its
+   markers and labels are not yet compatible with this loop; do not enable it
+   for these PRs until the [integration gap](docs/moonlighter.md#known-gaps-before-a-multi-computer-rollout) is resolved.
 2. The review loop picks it up, runs the `code-review` skill (independent
    Standards and Spec reviews) and posts the result as a PR comment. The label
-   becomes `review:findings`, or `review:clear` if there is nothing to fix.
+   becomes `review:findings`, or `review:clear` only after there is nothing to fix
+   and required validation has passed for the reviewed revision.
 3. The resolve loop picks up `review:findings` PRs, fixes the findings on the PR's
    branch, reruns the tests, pushes and sends it back to `review:requested`.
 4. Steps 2–3 repeat on each new head, up to three rounds. A PR that still isn't
@@ -106,11 +116,11 @@ This is the part most people adopt first, and it works without the rest.
 
 ### Where things run
 
-| Runs in Gitea Actions (per PR, short-lived) | Runs on a worker computer (long-lived, needs agent logins) |
-|---|---|
-| The project's tests (`pr-validation.yml`) | The review and resolve loops |
-| The advisory AI review (`pr-ai-review.yml`) | The implementation pipeline (tmux sessions) |
-| | The coach and merge gate |
+| Runs in Gitea Actions (per PR, short-lived) | Runs on a worker computer (long-lived, needs agent logins) | Runs once, always on (Moonlighter) |
+|---|---|---|
+| The project's tests (`pr-validation.yml`) | The review and resolve loops | Repository registration and the PR labeller |
+| The advisory AI review (`pr-ai-review.yml`) | The implementation pipeline (tmux sessions) | The job board, claims and dashboard |
+| | The coach and merge gate | Schedule windows for when workers may start |
 
 The agent work stays off Actions on purpose. Agent sessions run for a long time,
 need authenticated CLIs and write to branches, and CI jobs are short-lived,
@@ -133,6 +143,9 @@ The full lifecycle, ownership table and failure handling are in
 
 Cloning this repository starts nothing, enrolls nothing, merges nothing and
 publishes nothing. You adopt it in layers; each layer is useful on its own.
+Start with the [first-project walkthrough](docs/getting-started.md) for prerequisites,
+command locations and a small example. Commands below run from this factory checkout
+unless explicitly stated otherwise.
 
 ### Layer 1: use the skills in any repository
 
@@ -156,7 +169,7 @@ Code: *"Use tdd to add rate limiting to the login endpoint"*. Useful on their ow
    a runner to the Gitea you already have ([docs/setup.md](docs/setup.md)):
 
    ```bash
-   bash scripts/bootstrap.sh          # creates .env and an empty secrets/ dir
+   bash scripts/bootstrap.sh          # prepares .env and an empty runner-token file
    docker compose up -d gitea         # then finish setup at http://localhost:3300
    ```
 
@@ -182,8 +195,9 @@ Code: *"Use tdd to add rate limiting to the login endpoint"*. Useful on their ow
 
 ### Layer 3: the full factory
 
-Add contracts, the implementation pipeline, the coach and (with more than one
-worker computer) a coordinator. Follow
+Add contracts, the implementation pipeline, the coach and
+[Moonlighter](moonlighter/README.md), which registers your repositories and, with
+more than one worker computer, hands out work. Follow
 [docs/onboarding.md](docs/onboarding.md): prove the whole loop on one throwaway
 canary repository first, then enroll real repositories one at a time. The
 implementation driver runs from a project checkout:
@@ -205,9 +219,16 @@ Treat this as a documented blueprint with tested parts, not a turnkey product.
 | Gitea + Actions Compose recipe and workflow templates | Config validated; you run it |
 | This kit's own CI | Runs every check on GitHub Actions for each push |
 | Implementation pipeline | Drives **Codex** only; other agents need their own adapter |
-| Coordinator | The author's TheNightCrew is not published. Its worker client is in [integrations/nightcrew/](integrations/nightcrew/) and [docs/nightcrew.md](docs/nightcrew.md) describes the contract a substitute must meet |
+| Coordinator (Moonlighter) | Included in [moonlighter/](moonlighter/); 135 PHP and 90 Python tests pass. Shares the review labels with the standalone skills; timezone is still fixed and issue jobs can't yet be requeued ([details](docs/moonlighter.md#known-gaps-before-a-multi-computer-rollout)) |
 | Coach | Decides the handoff, but isn't yet connected to live rate-limit events or automatic worker launch |
 | End-to-end live run, GitHub release stage | Not yet exercised; see [docs/validation.md](docs/validation.md) |
+
+## Application architecture
+
+Projects may use .NET or Laravel. The [CQRS architecture guide](docs/application-architecture.md)
+describes separate command and query paths for either stack, with shared BDD,
+TDD and parity expectations. These are design options; application scaffolds
+and runtime-specific pipeline setup are project-owned.
 
 ## Requirements
 
@@ -231,7 +252,7 @@ bash scripts/check.sh
 | [scripts/](scripts/) | Bootstrap, checks, skill installer, coach, parity comparator, CI reviewer |
 | [templates/](templates/) | Project config, coach inputs, release manifest, and the Gitea Actions workflows: smoke test, PR validation, advisory AI review |
 | [docker-compose.yml](docker-compose.yml), [infra/](infra/) | Gitea 1.27.3 and Actions runner |
-| [integrations/nightcrew/](integrations/nightcrew/) | TheNightCrew worker client snapshot, with tests |
+| [moonlighter/](moonlighter/) | Moonlighter, the coordinator: repository registration, PR labelling, job board, claims, dashboard and the worker client |
 | [docs/style/](docs/style/) | Example coding standards that reviewers check against |
 
 ## Documentation
@@ -245,15 +266,15 @@ bash scripts/check.sh
 7. [Testing](docs/testing.md): BDD, TDD and parity
 8. [Coach](docs/coach.md): rate-limit bench and handoff
 9. [Paperclip field notes](docs/paperclip-adapters.md): why a supervisor's "succeeded" can't be trusted
-10. [Coordinator](docs/nightcrew.md): queue and claim contract
+10. [Coordinator](docs/moonlighter.md): queue and claim contract
 11. [Releases](docs/releases.md): GitHub push and draft release
 12. [Operations](docs/operations.md): resume, rollback, secrets
 13. [Roadmap](docs/roadmap.md): where this is going, including agent handovers through Gitea issues
 
 ## About the examples
 
-This kit was extracted from the author's own setup, where it drives several
-personal projects on a home Gitea server. Some of those projects appear in the
+This kit combines components developed for several personal projects on a
+self-hosted Gitea server. The complete public workflow is still being integrated. Some of those projects appear in the
 docs as worked examples, most often **AgileMedievalPeasantBoard**, a Laravel/PHP
 browser game being migrated to a new stack. That migration is why the guide
 covers oracles and parity. You don't need access to any of those repositories;

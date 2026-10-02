@@ -2,7 +2,7 @@
 
 This page separates what is proven by tests from what still needs a live run, so
 you know which parts to trust and which to canary yourself. The table is the last
-recorded local run of `bash scripts/check.sh` plus the NightCrew worker tests
+recorded local run of `bash scripts/check.sh` plus the Moonlighter worker tests
 (2026-09-28); rerun them after cloning.
 
 | Check | Result |
@@ -11,7 +11,8 @@ recorded local run of `bash scripts/check.sh` plus the NightCrew worker tests
 | Standalone merge-controller tests | 19 passed |
 | Codex pipeline tests | 11 passed |
 | Advisory reviewer tests | 25 passed |
-| Imported NightCrew worker tests | 32 passed |
+| Moonlighter worker client and Paperclip bridge tests | 90 passed |
+| Moonlighter PHP tests (after `npm run build`) | 135 passed |
 | Total | 104 passed |
 | All 19 skill frontmatter validations | Passed |
 | Python compilation and Bash syntax checks | Passed |
@@ -32,7 +33,7 @@ remain required before enabling a project.
 
 The next step is an isolated Gitea/Actions canary, followed by one
 project's complete BDD/implementation/review/repair/merge acceptance run. Before
-multi-week automatic issue delivery, resolve NightCrew issue-job retry/completion
+multi-week automatic issue delivery, resolve Moonlighter issue-job retry/completion
 evidence and connect coach observation/launch adapters. Final distribution needs a
 separate finite-cohort GitHub draft-release exercise. These are integration tasks,
 not successes implied by the unit suite.

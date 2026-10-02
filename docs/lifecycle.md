@@ -7,6 +7,12 @@ with executable behavior evidence at every transition. A review-ready PR is
 intermediate progress. A feature is complete when its accepted behavior is
 proven on merged code. A release is a separate, finite milestone.
 
+## Application architecture
+
+Choose the project runtime and record its architecture before implementation.
+The [CQRS guide](application-architecture.md) describes .NET and Laravel options
+and how both use the same BDD, TDD and parity gates.
+
 ## Ownership
 
 | Concern | Authority |
@@ -14,7 +20,7 @@ proven on merged code. A release is a separate, finite milestone.
 | Feature intent and approved changes | Feature spec and linked Gitea issues |
 | Behavior contract | BDD scenarios, acceptance crosswalk, pinned oracle when applicable |
 | Issue/PR history and merged code | Gitea |
-| Which computer owns a job | Coordinator's atomic claim (TheNightCrew in the author's setup) |
+| Which computer owns a job | Moonlighter's atomic claim |
 | Which local process writes a branch | Worker process plus branch/worktree lock |
 | Agent availability | Coach observations, account cooldown and configured capabilities |
 | Worker execution | Repository-local adapter / tmux pipeline |

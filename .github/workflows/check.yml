@@ -1,6 +1,6 @@
 # CI for this kit itself: runs the same local checks as `bash scripts/check.sh`,
-# plus the imported NightCrew worker tests. Nothing here calls a model provider,
-# starts Gitea or touches another repository.
+# plus Moonlighter's PHP and Python test suites. Nothing here calls a model
+# provider, starts Gitea or touches another repository.
 name: Check
 on:
   push:
@@ -21,7 +21,36 @@ jobs:
           node-version: "22"
       - name: Kit checks
         run: bash scripts/check.sh
-      - name: NightCrew worker tests
+
+  moonlighter:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: moonlighter
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: pdo_sqlite
+          tools: composer
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies and build dashboard assets
+        run: |
+          composer install --no-interaction --no-progress
+          npm ci
+          npm run build
+      - name: PHP tests
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan test
+      - name: Worker client tests
         run: |
           python3 -m pip install --quiet pytest
-          python3 -m pytest -q integrations/nightcrew/tests/Python/test_gitea_night.py
+          python3 -m pytest -q tests/Python

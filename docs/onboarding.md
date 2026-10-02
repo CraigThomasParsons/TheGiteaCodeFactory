@@ -8,7 +8,7 @@ record explicit exclusions rather than silently skipping them.
 For each active project:
 
 1. Record canonical Gitea identity, target branch and immutable starting revision.
-   Identify existing NightCrew clients, timers, PR loops and outbound mirrors.
+   Identify existing Moonlighter clients, timers, PR loops and outbound mirrors.
 2. Add `.factory/project.json` using `templates/factory-project.example.json`.
    Replace every example: real validation commands/status contexts, assignee,
    feature paths, oracle revision if relevant, providers and merge method.
@@ -26,8 +26,9 @@ For each active project:
    `pipeline.py` still invokes Codex; it is not a Claude adapter.
 4. Add a short project instruction pointing agents to the trusted factory config,
    actual BDD/parity commands and the selected controller. Preserve existing rules.
-5. Choose **one** PR controller: the standalone `review:*` skills or NightCrew's
-   `night:*` worker. Register the repository with NightCrew if it owns delivery.
+5. Choose **one** PR controller: the standalone `review:*` skills or Moonlighter's
+   `night:*` worker. Register the repository with Moonlighter
+   ([how](../moonlighter/README.md#registering-repositories)) if it owns delivery.
 6. Configure credentials locally and in Gitea Actions secrets where needed. Copy
    `templates/pr-validation.yml` to `.gitea/workflows/` and replace its placeholder
    with the project's tests; it produces the status check the merge gate waits for.

@@ -1,0 +1,11 @@
+[Unit]
+Description=Gitea PR reviewer window
+
+[Timer]
+OnCalendar=*-*-* 00:30:00 America/Toronto
+OnUnitActiveSec=10min
+Persistent=true
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

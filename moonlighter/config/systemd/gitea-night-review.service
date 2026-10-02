@@ -1,0 +1,12 @@
+[Unit]
+Description=Review and merge one eligible Gitea pull request
+After=network-online.target nightcrew-serve.service
+Wants=network-online.target nightcrew-serve.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/TheGiteaCodeFactory/moonlighter
+Environment=PYTHONPATH=%h/TheGiteaCodeFactory/moonlighter/scripts
+Environment=NIGHT_CREW_URL=http://localhost:8771/api
+EnvironmentFile=%h/.config/moonlighter/gitea-night.env
+ExecStart=%h/TheGiteaCodeFactory/moonlighter/scripts/gitea-night-worker review

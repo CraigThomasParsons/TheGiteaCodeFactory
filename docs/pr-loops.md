@@ -2,8 +2,8 @@
 
 ## Choose an owner
 
-Use either the standalone skills below or the NightCrew worker described in
-[nightcrew.md](nightcrew.md). Their labels and receipt formats are different.
+Use either the standalone skills below or the Moonlighter worker described in
+[moonlighter.md](moonlighter.md). Their labels and receipt formats are different.
 Do not run both controllers on the same PR.
 
 The Gemini reviewer (below) is an optional **advisory** check. The
@@ -42,7 +42,9 @@ Flow: `review:requested` → independent review → `review:findings` → repair
 Unresolved decisions use `review:needs-human`. Remove only obsolete state labels.
 The labels are `review:requested`, `review:in-progress`, `review:findings`,
 `review:resolving`, `review:resolved`, `review:clear` and `review:needs-human`;
-create them in each enrolled repository.
+create them in each enrolled repository. If Moonlighter is running, its PR
+labeller adds `review:requested` to new PRs and strips a stale verdict when the
+head moves on ([details](../moonlighter/README.md#review-labels-and-markers)).
 
 The helper requires matching repository, PR, base/head, source/target branch
 identities, no unresolved findings, both review axes clear, current validation

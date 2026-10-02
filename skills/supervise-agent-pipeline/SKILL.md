@@ -1,6 +1,6 @@
 ---
 name: supervise-agent-pipeline
-description: Supervise a durable multi-phase agent worker, classify execution state, handle bounded approvals and provider fallback, and advance only after validating structured evidence. Use for tmux workers, Nyx loops, phase pipelines, long autonomous runs, stalled workers, or resumable evidence-gated agent handoffs.
+description: Supervise a durable multi-phase agent worker, classify execution state, handle bounded approvals and provider fallback, and advance only after validating structured evidence. Use for tmux workers, phase pipelines, long autonomous runs, stalled workers, or resumable evidence-gated agent handoffs.
 ---
 
 # Supervise Agent Pipeline

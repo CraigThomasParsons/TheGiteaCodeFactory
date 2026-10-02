@@ -7,11 +7,11 @@ is recorded as done. The required behavior is:
 **observe rate limit → bench that account → preserve the same task → hand off to
 the next eligible agent**. A failure is never task completion.
 
-Do not assume your agent supervisor does this. [Paperclip](paperclip-adapters.md), which
-the author runs to supervise agents, has no rate-limit failover and reports a run
-refused with HTTP 429 as `succeeded`. An earlier prototype in the author's own
-projects routed tasks by capability and account availability; this helper keeps
-that idea but makes the transition deterministic and testable.
+Do not assume an agent supervisor provides this behavior. In the recorded
+[Paperclip field observations](paperclip-adapters.md), some provider failures were
+reported as successful runs and no automatic reassignment was observed. Those
+results are version-specific; test the supervisor and adapters you deploy.
+The factory helper computes a deterministic, testable handoff from a confirmed event.
 
 What it doesn't do yet: there is no heartbeat, so nothing notices a worker
 nearing its limit or going silent, and handover notes are not written to the
@@ -50,7 +50,7 @@ The next agent must be enabled, installed, capable and not benched/already attem
 If none qualify, the packet is `parked`. Handoff preserves issue, branch, worktree,
 phase, SHA, dirty changes and evidence; the next adapter resumes from that context.
 Ledger updates use an advisory file lock and atomic replacement. Use one ledger owner
-per host; it is not a distributed lease service. NightCrew controls cross-host claims.
+per host; it is not a distributed lease service. Moonlighter controls cross-host claims.
 
 ## Controller integration still required
 
@@ -61,7 +61,7 @@ the observed 429-reported-as-success case in [paperclip-adapters.md](paperclip-a
 1. Capture provider refusal or usage-limit events (including exit 75 from adapters
    with that contract), not generic nonzero exits. Detect JSON-envelope failures even
    when the outer CLI exits 0. Record raw diagnostic evidence privately.
-2. Stop dispatch to that account, retain/heartbeat the current NightCrew claim, and
+2. Stop dispatch to that account, retain/heartbeat the current Moonlighter claim, and
    inspect the complete process tree. Preserve uncommitted work and prior receipts.
 3. Call the helper only after the old writer cannot continue. Verify the worktree's
    current SHA/diff and keep or transfer the coordinator claim through its API.

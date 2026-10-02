@@ -146,62 +146,8 @@
       "source": "~/Code/AgileMedievalPeasantBoard/scripts/tools/tests/ai_pr_reviewer.test.js",
       "destination": "scripts/reviewer/tests/ai_pr_reviewer.test.js",
       "source_sha256": "41d02d745788d1172126de5371d684c832888619b3dd4b979dfec962e9f4bca3"
-    },
-    {
-      "source": "~/Code/TheNightCrew/scripts/gitea-night-worker",
-      "destination": "integrations/nightcrew/scripts/gitea-night-worker",
-      "source_sha256": "27a3a5dbf02f1c8c24f74e943ecf6fc82ebf60be03257d3425cabed6a6d9a4b9"
-    },
-    {
-      "source": "~/Code/TheNightCrew/scripts/gitea_night/__init__.py",
-      "destination": "integrations/nightcrew/scripts/gitea_night/__init__.py",
-      "source_sha256": "3fac1482ec06c952cd18915f407f1b666f43b878403aadf4c5a3b537d9cc134a"
-    },
-    {
-      "source": "~/Code/TheNightCrew/scripts/gitea_night/agents.py",
-      "destination": "integrations/nightcrew/scripts/gitea_night/agents.py",
-      "source_sha256": "c6c7dcbca5e84f8550e3e5bc1284acae748ee00a9208de780bd893eee675e6bc"
-    },
-    {
-      "source": "~/Code/TheNightCrew/scripts/gitea_night/coordinator.py",
-      "destination": "integrations/nightcrew/scripts/gitea_night/coordinator.py",
-      "source_sha256": "1f4beb0856af914ebd250307f4af3aa57eee1d2970f66418c9de2dc0eb2fd5fe"
-    },
-    {
-      "source": "~/Code/TheNightCrew/scripts/gitea_night/gitea.py",
-      "destination": "integrations/nightcrew/scripts/gitea_night/gitea.py",
-      "source_sha256": "7f7b5c7195bbf6ae0b4557c8a64e47da8b3e8bbe7635f12bc90930669489aed3"
-    },
-    {
-      "source": "~/Code/TheNightCrew/scripts/gitea_night/merge.py",
-      "destination": "integrations/nightcrew/scripts/gitea_night/merge.py",
-      "source_sha256": "9802c68ad4df44e8139ece2b18f3844e13d16d0f6317c6078601d9a0d239e193"
-    },
-    {
-      "source": "~/Code/TheNightCrew/scripts/gitea_night/metrics.py",
-      "destination": "integrations/nightcrew/scripts/gitea_night/metrics.py",
-      "source_sha256": "a5ab42cfc485ff97e1fc6387a3cd9ac2a9ef62b7988ce054030f9a95d7ccfa21"
-    },
-    {
-      "source": "~/Code/TheNightCrew/scripts/gitea_night/policy.py",
-      "destination": "integrations/nightcrew/scripts/gitea_night/policy.py",
-      "source_sha256": "1b38cfc90522268c10540c3cad64b99e9c86dec79f8c5d15907993694ac05a5b"
-    },
-    {
-      "source": "~/Code/TheNightCrew/scripts/gitea_night/runtime.py",
-      "destination": "integrations/nightcrew/scripts/gitea_night/runtime.py",
-      "source_sha256": "597b657a1a353a44a5980aa1ea9758249ff8a918762fd0573dd83eeb1c382c0d"
-    },
-    {
-      "source": "~/Code/TheNightCrew/scripts/gitea_night/worker.py",
-      "destination": "integrations/nightcrew/scripts/gitea_night/worker.py",
-      "source_sha256": "af29d156be9952aff14421c32642b0879199e06eaa2ac653df9df396176c31cf"
-    },
-    {
-      "source": "~/Code/TheNightCrew/tests/Python/test_gitea_night.py",
-      "destination": "integrations/nightcrew/tests/Python/test_gitea_night.py",
-      "source_sha256": "469f756781374b1168a0e63e8b5a2a649760deaace2814d3676aacc5302dcb98"
     }
   ],
-  "nightcrew_revision": "2371e1c627f1c742416d4c6a22b140dc732242c7"
+  "nightcrew_revision": "2371e1c627f1c742416d4c6a22b140dc732242c7",
+  "moonlighter": "moonlighter/ is copied from the author's private TheNightCrew repository by scripts/sync-moonlighter.sh; moonlighter/UPSTREAM records the source commit of the last sync."
 }

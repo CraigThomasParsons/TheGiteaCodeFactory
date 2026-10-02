@@ -118,7 +118,7 @@ package.
 
 ## What this does not establish
 
-No Gitea bridge, NightCrew claim, PR loop or release path was driven through Paperclip.
+No Gitea bridge, Moonlighter claim, PR loop or release path was driven through Paperclip.
 The Git-auth conflict described in `coach.md` was not retested. Adapter behaviour was
 observed on one host with one set of CLI versions; the `cursor` failure in particular is
 likely version-specific. None of this changes the kit's position that Paperclip

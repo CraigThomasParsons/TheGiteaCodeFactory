@@ -12,8 +12,9 @@ A JSON schema establishes response shape, not completion.
 Use the documented `--state` per repository. The driver can run for an extended
 period, but it is not a reboot-resilient service and does not supply a finite overall
 deadline; the operator's supervising service must enforce its operating window and
-reconcile surviving workers at shutdown. A coordinator with scheduling (such as
-TheNightCrew's overnight windows) can own that.
+reconcile surviving workers at shutdown. Moonlighter's schedule windows gate new
+claims; they do not stop or reconcile an already running tmux pipeline. Configure
+that shutdown and recovery behavior separately before unattended operation.
 
 On restart inspect the claim, recorded process, branch lock, attempt outputs,
 Git state and remote PR before retry. Never delete a lock file solely because a
@@ -37,7 +38,7 @@ claim still needs reconciliation. Preserve uncommitted changes and prior attempt
 ## Credential boundaries
 
 `.env`, `secrets/`, state, logs and tokens are git-ignored, and the kit ships no
-credentials. Gitea PAT, runner registration token, NightCrew token, provider
+credentials. Gitea PAT, runner registration token, Moonlighter token, provider
 login and GitHub release credentials have different roles. Configure them explicitly
 per host/service and test that exact process environment. Use TLS for remote secrets.
 Never commit provider transcripts that may contain credentials or private diff content.
@@ -55,10 +56,12 @@ bash scripts/check.sh
 Runs portable helper tests, imported merge-gate tests, phase-driver tests, reviewer
 unit tests, Python/shell syntax checks and Compose rendering. Does not invoke
 providers, start Docker services, claim jobs, write to Gitea or publish to GitHub.
-Tests of NightCrew's imported Python worker require pytest and are run separately:
+Moonlighter has its own tests. First complete its [installation](../moonlighter/README.md#install)
+and install pytest in your Python environment. From the factory checkout root:
 
 ```bash
-python3 -m pytest integrations/nightcrew/tests/Python/test_gitea_night.py
+(cd moonlighter && npm ci && npm run build && php artisan test)
+python3 -m pytest moonlighter/tests/Python
 ```
 
 Live acceptance still requires: fresh server installation and runner registration;

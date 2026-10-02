@@ -17,3 +17,20 @@ To use one, copy it into your project's `docs/style/`, keep the rules you agree
 with and replace project names, paths and vocabulary. The advisory reviewer reads
 `docs/style/javascript_node_style.md` and `docs/style/ts_node_style.md` from the
 target repository by default; see [pr-loops.md](../pr-loops.md) to point it at others.
+
+## Reading historical examples
+
+**AgileMedievalPeasantBoard** is the name of a Laravel/Livewire browser-game
+example, not a dependency of this factory. **ArcaneArcadeMachineFactory** is a
+Node.js example project. Neither repository is needed to use these guides.
+
+In the longer TypeScript quality and Unicode examples, “this repo,” issue numbers,
+phase names, game-specific paths and commands describe the source project at the
+stated audit date. They do not describe this factory checkout. Some referenced
+files and tools (such as `frontend_architecture.md` and game test scripts) are not
+bundled. Treat those references as examples of standards you would write or tools
+you would configure in your own project, not instructions to run them here.
+
+Adopt only the rules you want enforced and replace each source-project command
+with one that exists in your repository. Strict preferences such as avoiding
+ternaries are choices made by the example project, not universal language rules.
