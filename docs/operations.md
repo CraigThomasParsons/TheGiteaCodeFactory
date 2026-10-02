@@ -54,7 +54,9 @@ bash scripts/check.sh
 ```
 
 Runs portable helper tests, imported merge-gate tests, phase-driver tests, reviewer
-unit tests, Python/shell syntax checks and Compose rendering. Does not invoke
+unit tests and Python/shell syntax checks (`scripts/check-ci.sh`, the part CI
+runs), then Compose rendering (`scripts/check-local.sh`). Compose rendering is
+skipped with a notice, not a failure, when the Docker CLI is absent. Does not invoke
 providers, start Docker services, claim jobs, write to Gitea or publish to GitHub.
 Moonlighter has its own tests. First complete its [installation](../moonlighter/README.md#install)
 and install pytest in your Python environment. From the factory checkout root:
