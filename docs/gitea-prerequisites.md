@@ -1,9 +1,17 @@
 # Gitea prerequisites
 
-What an operator must configure on a Gitea server before the factory can run,
-beyond the per-project steps in [onboarding.md](onboarding.md). Everything here was
-found by enrolling this repository on an existing Gitea 1.26.2 instance on
-2026-10-01, not from the Gitea manual. Behaviour may differ on other versions.
+What an operator (the human who runs the factory; see [glossary.md](glossary.md)
+for this and other terms) must configure on a Gitea server before the factory can
+run, beyond the per-project steps in [onboarding.md](onboarding.md). The merge gate
+is the step that merges a PR only after review and its required status checks pass
+(see [pr-loops.md](pr-loops.md)); the pilot repository is the first, disposable
+project you enroll to prove the setup (see [getting-started.md](getting-started.md)).
+
+Everything here was found by enrolling this repository on an existing Gitea 1.26.2
+instance on 2026-10-01, not from the Gitea manual. The shipped `docker-compose.yml` uses Gitea 1.27.3, which was not tested
+for these notes. The API responses and error messages quoted below (the 404 and
+403 responses and `Invalid mirror protocol`) were observed on 1.26.2 and may differ
+on other versions.
 
 ## 1. Actions enabled
 
@@ -137,7 +145,7 @@ push mirror with an `ssh://` address is rejected with `Invalid mirror protocol`,
 an HTTPS push mirror with no credentials fails with
 `could not read Username for 'https://github.com'`. Two workable options:
 
-- **Server-side:** an HTTPS push mirror plus a GitHub fine-grained PAT scoped to the
+- **Server-side:** an HTTPS push mirror plus a GitHub fine-grained personal access token (PAT) scoped to the
   single destination repository with Contents: read and write. Mirrors pushes from
   anywhere, at the cost of storing a credential on the Gitea server.
 - **Client-side:** give one remote two push URLs, so a single push reaches both and
