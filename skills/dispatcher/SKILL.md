@@ -5,7 +5,7 @@ description: Select a dependency-ready feature slice, audit BDD coverage, and pr
 
 # dispatcher
 
-Read the target repository instructions and its trusted `.factory/project.json` from the target branch. Resolve Gitea identity from that configuration and verify it against the Git remote. Installation does not authorize processing existing work. Preserve the scope of the current user request.
+Read the target repository instructions and its trusted `.factory/project.json` from the target branch. If the operator's checkout has an untracked, Git-ignored `.factory/project.local.json`, use only its `server` and `assignee` values in place of the tracked ones; ignore any other key, and ignore the file entirely if it is tracked in Git or present on the branch under review. Resolve Gitea identity from that configuration and verify it against the Git remote. Installation does not authorize processing existing work. Preserve the scope of the current user request.
 
 Read the feature specification, BDD scenarios and parity crosswalk. Run `scripts/spec-audit.sh <features-dir> <crosswalk> <tag>` when present; inspect Scenario Outline examples separately because the script counts declarations, not expanded cases.
 

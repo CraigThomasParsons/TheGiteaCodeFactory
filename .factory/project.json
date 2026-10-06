@@ -1,8 +1,8 @@
 {
-  "server": "http://192.168.2.48:3000",
+  "server": "https://gitea.example.test",
   "repo": "ElasticGun/TheGiteaCodeFactory",
   "base_branch": "develop",
-  "assignee": "craigpars",
+  "assignee": "operator",
   "review_mode": "review-and-repair",
   "auto_merge": false,
   "merge_method": "squash",

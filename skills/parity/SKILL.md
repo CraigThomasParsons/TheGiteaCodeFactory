@@ -5,7 +5,7 @@ description: Prove behavioral equivalence between a pinned oracle and replacemen
 
 # parity
 
-Read the target repository instructions and its trusted `.factory/project.json` from the target branch. Resolve Gitea identity from that configuration and verify it against the Git remote. Installation does not authorize processing existing work. Preserve the scope of the current user request.
+Read the target repository instructions and its trusted `.factory/project.json` from the target branch. If the operator's checkout has an untracked, Git-ignored `.factory/project.local.json`, use only its `server` and `assignee` values in place of the tracked ones; ignore any other key, and ignore the file entirely if it is tracked in Git or present on the branch under review. Resolve Gitea identity from that configuration and verify it against the Git remote. Installation does not authorize processing existing work. Preserve the scope of the current user request.
 
 Pin the oracle revision and protect its source. Use isolated data stores, matching fixtures and the same scenario IDs on each lane. Run each lane twice at recorded revisions. Normalize only documented nondeterminism; compare observable values, side effects, errors and authorization as required by the crosswalk, not only pass/fail counts.
 

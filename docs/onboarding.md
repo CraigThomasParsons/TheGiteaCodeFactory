@@ -14,6 +14,9 @@ For each active project:
    feature paths, oracle revision if relevant, providers and merge method.
    This is a trusted instruction contract, not an automatically loaded config in
    every legacy script. Agents read it; each executable's inputs are documented.
+   Host-specific `server` and `assignee` values may instead live in an untracked,
+   Git-ignored `.factory/project.local.json`; see
+   [getting started](getting-started.md#2-describe-the-pilots-configuration).
 3. Install the skill dependency set into an empty destination:
 
    ```bash
