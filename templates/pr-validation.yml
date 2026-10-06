@@ -26,7 +26,9 @@ jobs:
           #   npm ci && npm test
           #   composer install && php artisan test
           #   pip install -r requirements.txt && pytest
-          # The factory-node image only has Node, Git and Bash; other stacks need
-          # their own runner label and image (see docs/setup.md).
+          # The factory-node image has Node 22, Python 3.11, Git and Bash but no
+          # Docker CLI, so docker compose cannot run there. Other stacks need
+          # their own runner label and image (see docs/setup.md and
+          # docs/gitea-prerequisites.md).
           echo "Replace the placeholder in pr-validation.yml with this project's tests." >&2
           exit 1
