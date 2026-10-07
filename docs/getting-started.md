@@ -38,6 +38,14 @@ validation command, status contexts and factory revision with your own values.
 Record the factory revision using `git rev-parse HEAD` in the factory checkout.
 Keep `auto_merge` false during initial review and setup.
 
+If the repository is public and you would rather not commit your server address
+or account name, commit placeholder `server` and `assignee` values and put the
+real ones in an untracked `.factory/project.local.json` (see
+[the local template](../templates/factory-project.local.example.json)). Add that
+path to `.gitignore`. Agents read only `server` and `assignee` from it, and only
+from the operator's own checkout, never from a branch under review. This
+repository's own `.factory/project.json` works this way.
+
 The JSON is an instruction contract for agents; legacy scripts do not all load
 it automatically. Supply each command's documented inputs explicitly.
 

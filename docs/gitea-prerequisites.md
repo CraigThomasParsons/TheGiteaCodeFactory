@@ -65,7 +65,7 @@ against a server you already have; register a standalone runner as above instead
 ## 3. `factory-node` cannot run this repository's own `check.sh`
 
 `factory-node` maps to `node:22-bookworm`, which has Node 22, Python 3.11 and Git —
-but **no Docker CLI**. The last line of `scripts/check.sh` is:
+but **no Docker CLI**. `scripts/check.sh` used to end with:
 
 ```bash
 docker compose --env-file .env.example --profile actions config --quiet
@@ -82,6 +82,11 @@ Pick one:
   different label, since `factory-node` (Node 22, Python 3.11, Git and Bash) has
   no Docker CLI;
 - split `check.sh` so the compose check is a separate, optional target.
+
+This repository took the last option. `scripts/check-ci.sh` holds everything that
+runs without Docker and is what its `pr-validation.yml` calls. `scripts/check-local.sh`
+holds the Compose parse. `scripts/check.sh` runs both, and fails when the Docker
+CLI is missing unless you set `CHECK_SKIP_COMPOSE=1`.
 
 The same applies to any project whose validation needs a runtime the chosen image
 lacks. Match the label to the image, per [setup.md](setup.md).

@@ -45,7 +45,9 @@ that belong to the delivery and testing workflow are included.
 |---|---|---|
 | `scripts/bootstrap.sh` | Creates local `.env` and empty ignored runner-token file; validates Compose, starts nothing | Bash, Docker Compose |
 | `scripts/install-skills.py` | `--destination`; installs all skill dependencies, fails before copying on a name collision | Python |
-| `scripts/check.sh` | Local test and configuration validation entrypoint | Python, Node, Bash, Docker Compose |
+| `scripts/check.sh` | Full local validation; runs check-ci.sh then check-local.sh | Python, Node, Bash, Docker Compose |
+| `scripts/check-ci.sh` | Runner-safe subset: tests, compile, shell syntax. No Docker. This is what CI runs | Python, Node, Bash |
+| `scripts/check-local.sh` | Compose config parse; skips with a notice when the Docker CLI is absent | Docker Compose |
 | `scripts/coach.py` | `--config --packet --event --state --output`; benches account and writes handoff packet, no launch | Python, Linux advisory locks |
 | `scripts/parity.py` | Four report paths: oracle twice, port twice; blocks red or unequal outcomes | Python |
 | `scripts/reviewer/ai_pr_reviewer.js` | Gitea/project/provider environment; posts advisory review | Node 22+, Gitea token and provider access |
