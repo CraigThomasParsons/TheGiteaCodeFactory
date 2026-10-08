@@ -271,6 +271,7 @@ bash scripts/check.sh
 12. [Releases](docs/releases.md): GitHub push and draft release
 13. [Operations](docs/operations.md): resume, rollback, secrets
 14. [Roadmap](docs/roadmap.md): where this is going, including agent handovers through Gitea issues
+15. [Decision records](docs/adr/README.md): why the kit is built the way it is, including the move to Haxe
 
 ## About the examples
 
