@@ -19,8 +19,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      # Pinned by commit; v2.1.1. The version must match haxe/toolchain.env.
+      - uses: krdlab/setup-haxe@18e4b483cfffca2fb8881530bf8a6cec39dac8fb
+        with:
+          haxe-version: 4.3.7
       - name: Kit checks
-        run: bash scripts/check.sh
+        run: |
+          eval "$(bash scripts/install-haxe.sh --ci --libs-only)"
+          bash scripts/check.sh
 
   moonlighter:
     runs-on: ubuntu-latest

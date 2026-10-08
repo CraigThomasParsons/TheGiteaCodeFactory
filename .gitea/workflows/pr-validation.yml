@@ -10,6 +10,10 @@
 # This calls check-ci.sh, not check.sh: the factory-node image (node:22-bookworm)
 # has Node, Python and Git but no Docker CLI, and check.sh ends with a
 # `docker compose config` step. See docs/setup.md.
+#
+# The image has no Haxe either, so the job first downloads the pinned compiler
+# and libraries into a temporary directory (checksums verified). That needs
+# internet access from the runner. See docs/haxe-setup.md.
 name: Project validation
 on:
   pull_request:
@@ -20,4 +24,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run runner-safe validation
-        run: bash scripts/check-ci.sh
+        run: |
+          eval "$(bash scripts/install-haxe.sh --ci)"
+          bash scripts/check-ci.sh

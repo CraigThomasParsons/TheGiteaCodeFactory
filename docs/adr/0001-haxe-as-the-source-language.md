@@ -109,7 +109,7 @@ Haxe change whose output was not rebuilt and committed.
 
 1. this decision record;
 2. toolchain: install, build and check scripts, pins, CI wiring and a setup
-   guide (`docs/haxe-setup.md`), proven on a small program with no product
+   guide ([haxe-setup.md](../haxe-setup.md)), proven on a small program with no product
    behavior;
 3. the outside-in suite for all eight helpers, against the current code;
 4. `classify_execution.py` (pure logic) as the pilot port;
@@ -160,8 +160,8 @@ accepted.
 - Callers do not change: the same paths, interpreters and arguments keep
   working, including in repositories that received copied skills.
 - Running a helper needs only Python 3 or Node.js, as today. Changing one needs
-  Haxe 4.3.7 and the pinned libraries; the setup guide added with the toolchain
-  (`docs/haxe-setup.md`) explains how to install them.
+  Haxe 4.3.7 and the pinned libraries; the setup guide
+  ([haxe-setup.md](../haxe-setup.md)) explains how to install them.
 - Generated files are much larger than the hand-written ones, because each
   carries a copy of the Haxe runtime it uses (a ten-line program becomes about
   1,600 lines of Python). They are not meant to be read; the header points to
