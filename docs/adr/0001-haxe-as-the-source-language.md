@@ -96,7 +96,8 @@ Haxe change whose output was not rebuilt and committed.
   files come out. Helpers that call Gitea or a model provider talk to a fake
   server on `localhost`. The suite can be pointed at any implementation, so the
   same tests run against the current Python or JavaScript (the oracle) and the
-  Haxe output (the port).
+  Haxe output (the port). How to run and retarget it is in
+  [tests/blackbox/README.md](../../tests/blackbox/README.md).
 - The existing unit tests (`tests/test_factory.py`, the merge-gate tests, the
   pipeline tests and the reviewer's `node:test` file) reach into module
   internals that generated code does not reproduce. They keep running against

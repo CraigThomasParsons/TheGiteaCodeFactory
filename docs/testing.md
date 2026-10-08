@@ -76,5 +76,8 @@ unit-tested with utest under `haxe/test/`, and `scripts/check-haxe.sh` rebuilds
 every generated file to confirm it matches the committed copy. While helpers
 are ported, the old Python and JavaScript remain the oracle in the same sense as
 the parity procedure above: a port is accepted only when the same tests pass
-against both. Install the toolchain with [haxe-setup.md](haxe-setup.md).
+against both. Those tests live in `tests/blackbox/`: they run each helper as a
+command, with fake Gitea and model servers on `127.0.0.1`, and can be pointed
+at either implementation ([how](../tests/blackbox/README.md)). Install the
+toolchain with [haxe-setup.md](haxe-setup.md).
 

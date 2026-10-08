@@ -18,6 +18,8 @@ python3 -m unittest discover -s tests -v
 python3 -m unittest discover -s skills/pr-review-resolve-loop/tests -v
 python3 -m unittest discover -s skills/slice-pipeline/scripts -p 'test_*.py' -v
 node --test scripts/reviewer/tests/*.test.js
+# Outside-in tests of each helper's command-line behavior (tests/blackbox/README.md).
+python3 -m unittest discover -s tests/blackbox -p 'test_*.py' -v
 python3 -m compileall -q scripts skills moonlighter/scripts
 
 # Syntax-only check of every shipped shell script; does not execute them.

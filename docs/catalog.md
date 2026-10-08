@@ -46,7 +46,7 @@ that belong to the delivery and testing workflow are included.
 | `scripts/bootstrap.sh` | Creates local `.env` and empty ignored runner-token file; validates Compose, starts nothing | Bash, Docker Compose |
 | `scripts/install-skills.py` | `--destination`; installs all skill dependencies, fails before copying on a name collision | Python |
 | `scripts/check.sh` | Full local validation; runs check-ci.sh then check-local.sh | Python, Node, Bash, Docker Compose, Haxe |
-| `scripts/check-ci.sh` | Runner-safe subset: tests, compile, shell syntax, Haxe drift check. No Docker. This is what CI runs | Python, Node, Bash, Haxe |
+| `scripts/check-ci.sh` | Runner-safe subset: unit and outside-in tests, compile, shell syntax, Haxe drift check. No Docker. This is what CI runs | Python, Node, Bash, Git, Haxe |
 | `scripts/check-local.sh` | Compose config parse; skips with a notice when the Docker CLI is absent | Docker Compose |
 | `scripts/install-haxe.sh` | `[--ci \| --system] [--libs-only] [--prefix DIR]`; installs the pinned Haxe compiler and libraries with checksum verification; prints `export` lines | Bash, curl, tar, Python (to unpack libraries) |
 | `scripts/build-haxe.sh` | `[--out-root DIR] [build files]`; regenerates the committed files built from `haxe/` | Bash, Haxe 4.3.7 |

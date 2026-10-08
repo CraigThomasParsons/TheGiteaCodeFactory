@@ -134,6 +134,7 @@ Node. It does not modify your working tree.
 | `scripts/install-haxe.sh` | Installs the toolchain |
 | `scripts/build-haxe.sh` | Regenerates the committed files |
 | `scripts/check-haxe.sh` | Drift check, proof and utest; called by `check-ci.sh` |
+| `tests/blackbox/` | Language-neutral tests of each helper's command-line behavior; [how to run them](../tests/blackbox/README.md) |
 
 ## Change a helper and rebuild
 
@@ -147,6 +148,9 @@ Node. It does not modify your working tree.
    It prints each file it wrote. Pass one or more `haxe/build/<name>.hxml`
    files to rebuild only those.
 3. Run `bash scripts/check.sh` (or `bash scripts/check-ci.sh` without Docker).
+   When the change replaces a helper, also run the outside-in suite against the
+   base commit's copy of that helper (see
+   [tests/blackbox/README.md](../tests/blackbox/README.md)); both must pass.
 4. Commit the Haxe change and the regenerated files together.
 
 Build through `scripts/build-haxe.sh`, not by running `haxe haxe/build/<name>.hxml`
