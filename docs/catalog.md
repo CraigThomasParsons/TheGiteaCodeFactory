@@ -45,9 +45,12 @@ that belong to the delivery and testing workflow are included.
 |---|---|---|
 | `scripts/bootstrap.sh` | Creates local `.env` and empty ignored runner-token file; validates Compose, starts nothing | Bash, Docker Compose |
 | `scripts/install-skills.py` | `--destination`; installs all skill dependencies, fails before copying on a name collision | Python |
-| `scripts/check.sh` | Full local validation; runs check-ci.sh then check-local.sh | Python, Node, Bash, Docker Compose |
-| `scripts/check-ci.sh` | Runner-safe subset: tests, compile, shell syntax. No Docker. This is what CI runs | Python, Node, Bash |
+| `scripts/check.sh` | Full local validation; runs check-ci.sh then check-local.sh | Python, Node, Bash, Docker Compose, Haxe |
+| `scripts/check-ci.sh` | Runner-safe subset: unit and outside-in tests, compile, shell syntax, Haxe drift check. No Docker. This is what CI runs | Python, Node, Bash, Git, Haxe |
 | `scripts/check-local.sh` | Compose config parse; skips with a notice when the Docker CLI is absent | Docker Compose |
+| `scripts/install-haxe.sh` | `[--ci \| --system] [--libs-only] [--prefix DIR]`; installs the pinned Haxe compiler and libraries with checksum verification; prints `export` lines | Bash, curl, tar, Python (to unpack libraries) |
+| `scripts/build-haxe.sh` | `[--out-root DIR] [build files]`; regenerates the committed files built from `haxe/` | Bash, Haxe 4.3.7 |
+| `scripts/check-haxe.sh` | Drift check of generated files, toolchain proof and utest suites; called by check-ci.sh; fails without Haxe unless `CHECK_SKIP_HAXE=1` | Bash, Haxe 4.3.7, Python, Node |
 | `scripts/coach.py` | `--config --packet --event --state --output`; benches account and writes handoff packet, no launch | Python, Linux advisory locks |
 | `scripts/parity.py` | Four report paths: oracle twice, port twice; blocks red or unequal outcomes | Python |
 | `scripts/reviewer/ai_pr_reviewer.js` | Gitea/project/provider environment; posts advisory review | Node 22+, Gitea token and provider access |

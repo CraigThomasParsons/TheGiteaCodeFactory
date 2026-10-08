@@ -1,0 +1,8 @@
+# utest suites, run by scripts/check-haxe.sh on Haxe's own interpreter (no target runtime).
+--class-path haxe/src
+--class-path haxe/test
+--main TestMain
+-lib utest
+# utest 1.13.2 still uses the older @:enum abstract syntax.
+-w -WDeprecatedEnumAbstract
+--interp

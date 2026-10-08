@@ -1,0 +1,9 @@
+# utest suites, run by scripts/check-haxe.sh on the node target.
+--class-path haxe/src
+--class-path haxe/test
+--main TestMain
+-lib utest
+-lib hxnodejs
+# utest 1.13.2 still uses the older @:enum abstract syntax.
+-w -WDeprecatedEnumAbstract
+--js haxe-tests/tests.js

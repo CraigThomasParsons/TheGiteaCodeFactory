@@ -1,0 +1,4 @@
+# Toolchain proof: the shared Proof class compiled to Python 3.
+--class-path haxe/src
+--main gcf.proof.HelloPython
+--python haxe/generated/proof/hello.py

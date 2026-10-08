@@ -84,3 +84,7 @@ whether you can get it and what to substitute if you cannot.
 | **Moonlighter** | The factory's coordinator: registers repositories, labels PRs for the review loops, holds the job board and atomic claims, and shows a live dashboard. A Laravel app; its code still uses its original name, TheNightCrew. | Included in [moonlighter/](../moonlighter/). See [moonlighter.md](moonlighter.md). |
 | **Sanctum token** | Laravel's API token; Moonlighter issues one per worker. Distinct from a Gitea PAT. | — |
 | **PAT** | Gitea personal access token. | — |
+| **Haxe** | A statically typed language whose compiler generates code for other languages. The kit's helper scripts are written in Haxe and committed as generated Python 3 and JavaScript; see [haxe-setup.md](haxe-setup.md). | Public, [haxe.org](https://haxe.org/). Needed only to change or check the helpers. |
+| **lix** | A version and library manager for Haxe. The kit pins its Haxe versions in lix's file format but does not require lix. | Public, via npm. |
+| **utest / hxnodejs** | Haxe libraries: a unit-test framework, and bindings to Node.js APIs. | Public, [lib.haxe.org](https://lib.haxe.org/). Installed by `scripts/install-haxe.sh`. |
+| **Generated file / drift check** | A file produced by a build rather than written by hand, marked `GENERATED FILE - DO NOT EDIT`. The drift check (`scripts/check-haxe.sh`) rebuilds it and fails if the committed copy differs. | Part of this kit. |

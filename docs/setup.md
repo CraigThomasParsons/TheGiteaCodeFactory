@@ -77,6 +77,14 @@ selected operation. It is distinct from the runner registration token and from
 the Moonlighter worker token. Agent login remains on the worker host; Compose does
 not log in to Codex, Claude, Gemini or Paperclip.
 
+## Changing the kit's helper scripts
+
+Running the factory needs no Haxe. If you change the kit itself, its helper
+scripts are built from Haxe source and its checks need the pinned Haxe
+toolchain; see [haxe-setup.md](haxe-setup.md). The Actions job in
+`.gitea/workflows/pr-validation.yml` downloads that toolchain on each run, so the
+runner needs internet access.
+
 ## Sources and version maintenance
 
 The [Gitea Docker guide](https://docs.gitea.com/installation/install-with-docker/)

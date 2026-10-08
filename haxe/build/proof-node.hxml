@@ -1,0 +1,5 @@
+# Toolchain proof: the shared Proof class compiled to Node.js through hxnodejs.
+--class-path haxe/src
+--main gcf.proof.HelloNode
+-lib hxnodejs
+--js haxe/generated/proof/hello.js

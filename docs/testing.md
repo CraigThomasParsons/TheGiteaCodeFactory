@@ -67,3 +67,17 @@ actual BDD runner/exporter and justified normalization rules.
 A changed head needs new evidence. A copied log with a recent timestamp is not proof.
 Approved behavior changes need revised criteria and explicit divergence records;
 never hide a regression by stripping the differing field from observations.
+
+## Tests for the kit's own helpers
+
+The kit's helper scripts are built from Haxe source
+([decision record](adr/0001-haxe-as-the-source-language.md)). Their Haxe code is
+unit-tested with utest under `haxe/test/`, and `scripts/check-haxe.sh` rebuilds
+every generated file to confirm it matches the committed copy. While helpers
+are ported, the old Python and JavaScript remain the oracle in the same sense as
+the parity procedure above: a port is accepted only when the same tests pass
+against both. Those tests live in `tests/blackbox/`: they run each helper as a
+command, with fake Gitea and model servers on `127.0.0.1`, and can be pointed
+at either implementation ([how](../tests/blackbox/README.md)). Install the
+toolchain with [haxe-setup.md](haxe-setup.md).
+

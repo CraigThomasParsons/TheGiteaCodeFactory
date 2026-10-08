@@ -233,11 +233,14 @@ and runtime-specific pipeline setup are project-owned.
 ## Requirements
 
 - Linux, Git, Bash, Python 3.11+, Node 22+
+- Haxe 4.3.7 and two pinned libraries, only to change or check the helper
+  scripts; `bash scripts/install-haxe.sh` installs them ([Haxe setup](docs/haxe-setup.md))
 - Docker with Compose, for the Gitea recipe
 - tmux and at least one authenticated agent CLI, on worker computers
 - A Gemini API key, only for the advisory CI reviewer
 
-Run the local checks (no network calls, no services started):
+Run the local checks (no network calls, no services started; set
+`CHECK_SKIP_HAXE=1` if you have not installed Haxe):
 
 ```bash
 bash scripts/check.sh
@@ -249,7 +252,8 @@ bash scripts/check.sh
 |---|---|
 | [docs/](docs/) | The guide |
 | [skills/](skills/) | 19 agent skills, some with helper scripts and tests |
-| [scripts/](scripts/) | Bootstrap, checks, skill installer, coach, parity comparator, CI reviewer |
+| [scripts/](scripts/) | Bootstrap, checks, skill installer, coach, parity comparator, CI reviewer, Haxe install/build/check |
+| [haxe/](haxe/) | Haxe source for the helper scripts, build files, utest suites and pinned toolchain ([Haxe setup](docs/haxe-setup.md)) |
 | [templates/](templates/) | Project config, coach inputs, release manifest, and the Gitea Actions workflows: smoke test, PR validation, advisory AI review |
 | [docker-compose.yml](docker-compose.yml), [infra/](infra/) | Gitea 1.27.3 and Actions runner |
 | [moonlighter/](moonlighter/) | Moonlighter, the coordinator: repository registration, PR labelling, job board, claims, dashboard and the worker client |
@@ -260,6 +264,7 @@ bash scripts/check.sh
 1. [Glossary](docs/glossary.md)
 2. [Lifecycle](docs/lifecycle.md): ownership, gates, failure handling
 3. [Setup](docs/setup.md): Gitea and Actions, new or existing server
+   - [Haxe toolchain](docs/haxe-setup.md): only needed to change or check the helper scripts
 4. [Gitea prerequisites](docs/gitea-prerequisites.md): runner labels, token scopes, review labels, mirroring limits
 5. [Catalog](docs/catalog.md): every skill and script
 6. [Onboarding](docs/onboarding.md): canary first, then each repository
@@ -271,6 +276,7 @@ bash scripts/check.sh
 12. [Releases](docs/releases.md): GitHub push and draft release
 13. [Operations](docs/operations.md): resume, rollback, secrets
 14. [Roadmap](docs/roadmap.md): where this is going, including agent handovers through Gitea issues
+15. [Decision records](docs/adr/README.md): why the kit is built the way it is, including the move to Haxe
 
 ## About the examples
 
