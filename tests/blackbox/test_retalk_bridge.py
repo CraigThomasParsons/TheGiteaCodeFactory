@@ -358,9 +358,17 @@ class RetalkBridgeTest(HelperTestCase):
         self.assertEqual(self.sent()[0]["text"], "hello codex")
         retalk_args = json.loads((self.fake / "retalk-calls.jsonl").read_text().splitlines()[0])
         self.assertIn("--save", retalk_args)
+        self.assertEqual(retalk_args[-2:], ["--", "hello codex"])
+
+    def test_send_text_after_double_dash_may_start_with_dashes(self):
+        result = self.bridge("send", "--side", "claude", "--hop", "2", "--", "--not-an-option")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.sent()[0]["text"], "[retalk-bridge hop=2] --not-an-option")
 
     def test_usage_errors_exit_2(self):
         self.assertEqual(self.bridge("send", "--side", "claude").returncode, 2)
+        self.assertEqual(self.bridge("send", "--side", "claude", "two", "words").returncode, 2)
+        self.assertEqual(self.sent(), [])
         self.assertEqual(self.bridge("tick", "--side", "nobody").returncode, 2)
         self.assertEqual(self.bridge("frobnicate").returncode, 2)
 

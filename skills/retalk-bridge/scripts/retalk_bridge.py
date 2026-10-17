@@ -14,6 +14,7 @@ import sys as python_lib_Sys
 import builtins as python_lib_Builtins
 import functools as python_lib_Functools
 import os as python_lib_Os
+import random as python_lib_Random
 import re as python_lib_Re
 import time as python_lib_Time
 import traceback as python_lib_Traceback
@@ -902,15 +903,21 @@ class gcf_retalkbridge_Main:
     def parseOptions(args):
         options = haxe_ds_StringMap()
         i = 0
+        positionalOnly = False
         while (i < len(args)):
             arg = (args[i] if i >= 0 and i < len(args) else None)
-            if arg.startswith("--"):
+            if ((not positionalOnly) and ((arg == "--"))):
+                positionalOnly = True
+                i = (i + 1)
+            elif ((not positionalOnly) and arg.startswith("--")):
                 if ((i + 1) >= len(args)):
                     gcf_retalkbridge_Main.usage((("null" if arg is None else arg) + " needs a value"))
                 key = HxString.substr(arg,2,None)
                 options.h[key] = python_internal_ArrayImpl._get(args, (i + 1))
                 i = (i + 2)
             else:
+                if ("_" in options.h):
+                    gcf_retalkbridge_Main.usage((("unexpected argument " + ("null" if arg is None else arg)) + " (quote the message text as one argument)"))
                 options.h["_"] = arg
                 i = (i + 1)
         return options
@@ -992,7 +999,7 @@ class gcf_retalkbridge_Main:
 
     @staticmethod
     def writeJson(path,value):
-        tmp = (("null" if path is None else path) + ".tmp")
+        tmp = (((((("null" if path is None else path) + ".") + Std.string(__import__('os').getpid())) + ".") + Std.string(int((python_lib_Random.random() * 1000000000)))) + ".tmp")
         sys_io_File.saveContent(tmp,(HxOverrides.stringOrNull(haxe_format_JsonPrinter.print(value,None," ")) + "\n"))
         __import__('os').chmod(tmp, 0o600)
         sys_FileSystem.rename(tmp,path)
@@ -1073,7 +1080,7 @@ class gcf_retalkbridge_Main:
         except BaseException as _g:
             None
             keep = None
-        while ((len(entries) > keep) and ((Reflect.field((entries[0] if 0 < len(entries) else None),"status") != "pending"))):
+        while (((len(entries) > keep) and ((Reflect.field((entries[0] if 0 < len(entries) else None),"status") != "pending"))) and ((Reflect.field((entries[0] if 0 < len(entries) else None),"status") != "resuming"))):
             if (len(entries) != 0):
                 entries.pop(0)
         gcf_retalkbridge_Main.writeJson((HxOverrides.stringOrNull(gcf_retalkbridge_Main.stateDir(side)) + "/spool.json"),entries)
@@ -1164,7 +1171,7 @@ class gcf_retalkbridge_Main:
     def send(side,text,hop):
         conf = gcf_retalkbridge_Main.sideConfig(side)
         body = (gcf_retalkbridge_Policy.markHop(text,hop) if ((hop > 0)) else text)
-        result = gcf_retalkbridge_Main.run([gcf_retalkbridge_Main.expand(gcf_retalkbridge_Main.setting("retalk","retalk")), "send", "--dir", gcf_retalkbridge_Main.expand(conf.identity_dir), "--peer", conf.peer, "--save", body],None,gcf_retalkbridge_Main.setting("retalk_timeout_seconds",30),False)
+        result = gcf_retalkbridge_Main.run([gcf_retalkbridge_Main.expand(gcf_retalkbridge_Main.setting("retalk","retalk")), "send", "--dir", gcf_retalkbridge_Main.expand(conf.identity_dir), "--peer", conf.peer, "--save", "--", body],None,gcf_retalkbridge_Main.setting("retalk_timeout_seconds",30),False)
         receipt = None
         try:
             receipt = gcf_retalkbridge_Policy.parseJson(StringTools.trim(result.out))
@@ -4190,7 +4197,7 @@ def _retalk_bridge_codex_snapshot(root):
                 stack.extend(item)
     return None
 
-gcf_retalkbridge_Main.USAGE = ((((((("usage: retalk_bridge.py {hook|tick|fetch|send|status|install-hooks|uninstall-hooks} [--side SIDE] ...\n" + "  hook --side S        lifecycle hook for Claude Code / Codex (event JSON on stdin)\n") + "  tick [--side S]      watcher pass: fetch mail, wake an idle side, send its reply\n") + "  fetch --side S       fetch new mail into the local spool\n") + "  send --side S TEXT   send TEXT to the side's peer\n") + "  status               bridge state as JSON (no message text)\n") + "  install-hooks|uninstall-hooks --claude-settings FILE --codex-hooks FILE --command CMD\n") + "config: $RETALK_BRIDGE_CONFIG or ~/.config/retalk-bridge/config.json")
+gcf_retalkbridge_Main.USAGE = (((((((("usage: retalk_bridge.py {hook|tick|fetch|send|status|install-hooks|uninstall-hooks} [--side SIDE] ...\n" + "  hook --side S        lifecycle hook for Claude Code / Codex (event JSON on stdin)\n") + "  tick [--side S]      watcher pass: fetch mail, wake an idle side, send its reply\n") + "  fetch --side S       fetch new mail into the local spool\n") + "  send --side S [--hop N] [--] TEXT\n") + "                       send TEXT to the side's peer (put -- before a TEXT starting with -)\n") + "  status               bridge state as JSON (no message text)\n") + "  install-hooks|uninstall-hooks --claude-settings FILE --codex-hooks FILE --command CMD\n") + "config: $RETALK_BRIDGE_CONFIG or ~/.config/retalk-bridge/config.json")
 gcf_retalkbridge_Main.MARKER = "retalk_bridge.py hook"
 gcf_retalkbridge_Policy.HOP_PREFIX = "[retalk-bridge hop="
 gcf_retalkbridge_Policy.NO_REPLY = "NO_REPLY"

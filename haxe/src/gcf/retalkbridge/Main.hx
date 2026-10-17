@@ -86,7 +86,8 @@ class Main {
 		+ "  hook --side S        lifecycle hook for Claude Code / Codex (event JSON on stdin)\n"
 		+ "  tick [--side S]      watcher pass: fetch mail, wake an idle side, send its reply\n"
 		+ "  fetch --side S       fetch new mail into the local spool\n"
-		+ "  send --side S TEXT   send TEXT to the side's peer\n"
+		+ "  send --side S [--hop N] [--] TEXT\n"
+		+ "                       send TEXT to the side's peer (put -- before a TEXT starting with -)\n"
 		+ "  status               bridge state as JSON (no message text)\n"
 		+ "  install-hooks|uninstall-hooks --claude-settings FILE --codex-hooks FILE --command CMD\n"
 		+ "config: $RETALK_BRIDGE_CONFIG or ~/.config/retalk-bridge/config.json";
@@ -99,14 +100,20 @@ class Main {
 	static function parseOptions(args:Array<String>):Map<String, String> {
 		var options = new Map<String, String>();
 		var i = 0;
+		var positionalOnly = false;
 		while (i < args.length) {
 			var arg = args[i];
-			if (StringTools.startsWith(arg, "--")) {
+			if (!positionalOnly && arg == "--") {
+				positionalOnly = true;
+				i++;
+			} else if (!positionalOnly && StringTools.startsWith(arg, "--")) {
 				if (i + 1 >= args.length)
 					usage(arg + " needs a value");
 				options.set(arg.substr(2), args[i + 1]);
 				i += 2;
 			} else {
+				if (options.exists("_"))
+					usage("unexpected argument " + arg + " (quote the message text as one argument)");
 				options.set("_", arg);
 				i++;
 			}
@@ -179,7 +186,8 @@ class Main {
 
 	/** Write JSON atomically with owner-only permissions (state can hold message text). **/
 	static function writeJson(path:String, value:Dynamic):Void {
-		var tmp = path + ".tmp";
+		// A name of its own per writer: concurrent hooks may write the same file.
+		var tmp = path + "." + Syntax.code("__import__('os').getpid()") + "." + Std.random(1000000000) + ".tmp";
 		File.saveContent(tmp, Json.stringify(value, null, " ") + "\n");
 		Syntax.code("__import__('os').chmod({0}, 0o600)", tmp);
 		FileSystem.rename(tmp, path);
@@ -251,7 +259,7 @@ class Main {
 
 	static function saveSpool(side:String, entries:Array<Dynamic>):Void {
 		var keep = Std.int(setting("spool_keep", 200));
-		while (entries.length > keep && entries[0].status != "pending")
+		while (entries.length > keep && entries[0].status != "pending" && entries[0].status != "resuming")
 			entries.shift();
 		writeJson(stateDir(side) + "/spool.json", entries);
 	}
@@ -348,7 +356,7 @@ class Main {
 	static function send(side:String, text:String, hop:Int):Bool {
 		var conf = sideConfig(side);
 		var body = hop > 0 ? Policy.markHop(text, hop) : text;
-		var result = run([expand(setting("retalk", "retalk")), "send", "--dir", expand(conf.identity_dir), "--peer", conf.peer, "--save", body], null,
+		var result = run([expand(setting("retalk", "retalk")), "send", "--dir", expand(conf.identity_dir), "--peer", conf.peer, "--save", "--", body], null,
 			setting("retalk_timeout_seconds", 30), false);
 		var receipt:Dynamic = try Policy.parseJson(StringTools.trim(result.out)) catch (e:Dynamic) null;
 		if (result.code != 0 || receipt == null) {
