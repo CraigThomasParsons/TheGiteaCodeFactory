@@ -35,6 +35,8 @@ through it:
 - [ ] A PR with a deliberate defect goes `review:requested → review:findings →
       review:resolved → review:requested → review:clean` and merges
 - [ ] Pushing a new commit after `review:clean` blocks the merge (stale-head rejection)
+- [ ] The event trigger ([event-triggers.md](event-triggers.md)) queues the PR on
+      open, push and `review:requested` through a live `factory-host` runner
 - [ ] A failing test blocks the merge even when the review is clear
 - [ ] Record the run in [validation.md](validation.md)
 

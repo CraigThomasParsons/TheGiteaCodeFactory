@@ -23,6 +23,10 @@ Process at most two enrolled PRs, up to three repair rounds each.
 Project auto-merge is enabled; merge only after the receipt and current checks pass.
 ```
 
+To start the loop when a PR opens, gets a new commit or is labelled
+`review:requested` or `review:findings`, rather than on request or a timer, add the
+event trigger described in [event-triggers.md](event-triggers.md).
+
 For review only, invoke `$pr-review-loop`; for repair only, `$pr-resolve-loop`.
 These are agent workflows, not names of shell executables. The documented command
 for a deterministic merge check is:

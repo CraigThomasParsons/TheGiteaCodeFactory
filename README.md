@@ -120,6 +120,7 @@ This is the part most people adopt first, and it works without the rest.
 |---|---|---|
 | The project's tests (`pr-validation.yml`) | The review and resolve loops | Repository registration and the PR labeller |
 | The advisory AI review (`pr-ai-review.yml`) | The implementation pipeline (tmux sessions) | The job board, claims and dashboard |
+| The optional review trigger (`pr-review-trigger.yml`, on the worker's `factory-host` runner; [guide](docs/event-triggers.md)) | | |
 | | The coach and merge gate | Schedule windows for when workers may start |
 
 The agent work stays off Actions on purpose. Agent sessions run for a long time,
