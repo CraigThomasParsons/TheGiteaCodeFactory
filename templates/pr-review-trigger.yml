@@ -1,0 +1,42 @@
+# pr-review-trigger template v1
+# Queues a PR for the host review loop when it opens, gets a new head, reopens or
+# is labelled for review. Copy to .gitea/workflows/ in each enrolled repository.
+# The job only hands repo/PR/head/event to pr-trigger on the factory-host runner;
+# it checks out nothing, runs no PR code and uses no secrets. See
+# docs/event-triggers.md.
+name: Factory PR review trigger
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled]
+    branches: [develop]
+concurrency:
+  group: pr-review-trigger-${{ github.repository }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+jobs:
+  queue:
+    # Gitea may report `synchronized` and `label_updated` and may leave
+    # label.name empty; an empty name passes and pr-trigger records label=unknown.
+    if: >-
+      ${{ !github.event.pull_request.draft
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && ((github.event.action != 'labeled' && github.event.action != 'label_updated')
+      || !github.event.label.name
+      || github.event.label.name == 'review:requested'
+      || github.event.label.name == 'review:findings') }}
+    runs-on: factory-host
+    timeout-minutes: 5
+    steps:
+      - name: Queue the PR for the host review loop
+        env:
+          PR_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_EVENT: ${{ github.event.action }}
+          PR_LABEL: ${{ github.event.label.name }}
+        run: |
+          set -eu
+          set -- --repo "$PR_REPO" --pr "$PR_NUMBER" --sha "$PR_SHA" --event "$PR_EVENT"
+          if [ -n "$PR_LABEL" ]; then
+            set -- "$@" --label "$PR_LABEL"
+          fi
+          exec "$HOME/.local/bin/pr-trigger" "$@"

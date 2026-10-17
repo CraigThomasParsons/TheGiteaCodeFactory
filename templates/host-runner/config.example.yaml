@@ -1,0 +1,24 @@
+# factory-host runner config template v1
+# scripts/setup-host-runner.sh renders this to
+# $XDG_CONFIG_HOME/factory-host-runner/config.yaml (default $HOME/.config/...),
+# replacing @STATE_DIR@ with the runner's state directory. Keys were checked
+# against `gitea-runner config generate` from gitea-runner v4.1.0.
+#
+# Host mode: jobs run directly as this account with no container isolation, so
+# serve only trusted workflows (templates/pr-review-trigger.yml). Advertise only
+# factory-host here; other runners keep their own labels.
+log:
+  level: info
+runner:
+  file: "@STATE_DIR@/.runner"
+  capacity: 1
+  timeout: 10m
+  shutdown_timeout: 30s
+  fetch_timeout: 5s
+  fetch_interval: 2s
+  labels:
+    - "factory-host:host"
+cache:
+  enabled: false
+host:
+  workdir_parent: "@STATE_DIR@/work"
