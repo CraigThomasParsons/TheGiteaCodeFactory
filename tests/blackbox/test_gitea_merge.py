@@ -24,7 +24,7 @@ def open_pr():
     return {"number": 5, "state": "open", "merged": False, "draft": False, "mergeable": True,
             "head": {"sha": HEAD, "ref": "feat/x", "repo": {"full_name": "o/r"}},
             "base": {"sha": BASE, "ref": "develop"},
-            "labels": [{"name": "review:clear"}, {"name": "kind:feature"}],
+            "labels": [{"name": "review:clean"}, {"name": "kind:feature"}],
             "merge_commit_sha": None}
 
 
@@ -143,12 +143,21 @@ class GiteaMergeTest(HelperTestCase):
                 self.assert_blocked(self.merge(), reason)
 
     def test_labels(self):
-        for labels in ([], ["kind:feature"], ["review:clear", "review:findings"], ["review:clear", "review:needs-human"],
-                       ["review:clear", "review:requested"], ["review:clear", "review:in-progress"],
-                       ["review:clear", "review:resolving"]):
+        conflicts = ["review:findings", "review:needs-human", "review:requested", "review:in-progress", "review:resolving"]
+        cases = [[], ["kind:feature"], ["review:resolved"]]
+        cases += [[clean, conflict] for clean in ("review:clean", "review:clear") for conflict in conflicts]
+        for labels in cases:
             with self.subTest(labels=labels):
                 self.gitea.pr = dict(open_pr(), labels=[{"name": n} for n in labels])
-                self.assert_blocked(self.merge(), "review:clear")
+                self.assert_blocked(self.merge(), "review:clean")
+
+    def test_clean_label_spellings(self):
+        for labels in (["review:clean"], ["review:clear"], ["review:clean", "review:clear"]):
+            with self.subTest(labels=labels):
+                self.gitea.pr = dict(open_pr(), labels=[{"name": n} for n in labels])
+                result = self.merge()
+                self.assertEqual(result.returncode, 0, result.stdout)
+                self.assertEqual(json.loads(result.stdout)["status"], "eligible")
 
     def test_receipt_contents(self):
         cases = [({"schema_version": 2}, "version 1"), ({"findings": [{"id": 1}]}, "version 1"), ({"findings": None}, "version 1"),
@@ -283,8 +292,8 @@ class GiteaMergeTest(HelperTestCase):
         self.assertEqual(self.log_lines(), [{"repo": "o/r", "pr": 5, "status": "merged", "head": HEAD, "merge_commit": MERGED}])
 
     def test_execute_rechecks_before_merging(self):
-        self.gitea.pr_after = {2: lambda pr: dict(pr, labels=[{"name": "review:clear"}, {"name": "review:requested"}])}
-        self.assert_blocked(self.merge("--execute"), "review:clear")
+        self.gitea.pr_after = {2: lambda pr: dict(pr, labels=[{"name": "review:clean"}, {"name": "review:requested"}])}
+        self.assert_blocked(self.merge("--execute"), "review:clean")
         self.gitea.pr_gets = 0
         self.gitea.pr = open_pr()
         self.gitea.pr_after = {2: lambda pr: dict(pr, head=dict(pr["head"], sha="4" * 40))}

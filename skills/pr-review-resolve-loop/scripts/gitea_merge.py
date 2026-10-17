@@ -13,6 +13,9 @@ import urllib.parse
 import urllib.request
 
 SERVER = os.environ.get('GITEA_SERVER_URL', '').rstrip('/')
+# review:clean is canonical; review:clear is accepted while older labellers migrate.
+CLEAN_LABELS = {'review:clean', 'review:clear'}
+CONFLICTING_LABELS = {'review:findings', 'review:needs-human', 'review:requested', 'review:in-progress', 'review:resolving'}
 
 class Blocked(Exception):
     pass
@@ -71,8 +74,8 @@ def validate(pr, receipt, statuses, repo, number):
     if pr.get('mergeable') is not True:
         raise Blocked('Gitea has not confirmed mergeability')
     labels = {row['name'] for row in pr.get('labels', [])}
-    if 'review:clear' not in labels or labels.intersection({'review:findings', 'review:needs-human', 'review:requested', 'review:in-progress', 'review:resolving'}):
-        raise Blocked('PR lacks review:clear or has a conflicting review label')
+    if not labels.intersection(CLEAN_LABELS) or labels.intersection(CONFLICTING_LABELS):
+        raise Blocked('PR lacks review:clean (or transitional review:clear) or has a conflicting review label')
     if receipt.get('schema_version') != 1 or receipt.get('findings') != []:
         raise Blocked('Receipt must be version 1 with no unresolved findings')
     if receipt.get('standards_review') != 'clear' or receipt.get('spec_review') != 'clear':

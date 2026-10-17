@@ -10,7 +10,7 @@ spec.loader.exec_module(m)
 class FakeApi:
     def __init__(self):
         self.pr = {'state':'open','draft':False,'merged':False,'mergeable':True,
-                   'head':{'sha':'a'*40,'ref':'feature/x','repo':{'full_name':'owner/repo'}},'base':{'sha':'b'*40,'ref':'develop'},'labels':[{'name':'review:clear'}]}
+                   'head':{'sha':'a'*40,'ref':'feature/x','repo':{'full_name':'owner/repo'}},'base':{'sha':'b'*40,'ref':'develop'},'labels':[{'name':'review:clean'}]}
         self.rows = [{'id':2,'context':'test','status':'success'}]
         self.posts = []
         self.gets = 0
@@ -80,6 +80,18 @@ class MergeTests(unittest.TestCase):
         self.blocked()
     def test_conflicting_findings_blocks(self):
         self.api.pr['labels'].append({'name':'review:findings'})
+        self.blocked()
+    def test_transitional_clear_label_is_accepted(self):
+        self.api.pr['labels']=[{'name':'review:clear'}]
+        self.assertEqual(self.run_merge()['status'],'merged')
+    def test_clean_and_clear_together_are_accepted(self):
+        self.api.pr['labels']=[{'name':'review:clean'},{'name':'review:clear'}]
+        self.assertEqual(self.run_merge()['status'],'merged')
+    def test_missing_clean_label_blocks(self):
+        self.api.pr['labels']=[{'name':'review:resolved'}]
+        self.blocked()
+    def test_conflicting_label_blocks_transitional_clear(self):
+        self.api.pr['labels']=[{'name':'review:clear'},{'name':'review:requested'}]
         self.blocked()
     def test_receipt_wrong_repo_blocks(self):
         self.receipt['repo']='other/repo';self.blocked()

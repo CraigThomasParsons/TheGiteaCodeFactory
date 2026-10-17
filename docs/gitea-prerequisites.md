@@ -131,10 +131,14 @@ review:in-progress|0e8a16|A reviewer is working on this head
 review:findings|d93f0b|Review found issues needing repair
 review:resolving|fbca04|A resolver is repairing findings
 review:resolved|5319e7|Findings repaired; needs re-review
-review:clear|0e8a16|Current head reviewed clear; merge eligible
+review:clean|0e8a16|Current head reviewed clean; merge eligible
 review:needs-human|b60205|Blocked on a human decision
 LABELS
 ```
+
+`review:clean` replaces the earlier `review:clear`. Repositories that already have
+`review:clear` can keep it for now: the merge gate accepts either name during the
+transition. Create `review:clean` alongside it and move to the new name.
 
 ## 6. Branch protection
 

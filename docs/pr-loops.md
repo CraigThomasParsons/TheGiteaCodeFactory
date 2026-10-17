@@ -38,11 +38,13 @@ controller adds `--execute` only after verifying project auto-merge policy.
 The script does not load the project policy JSON or infer user authorization.
 
 Flow: `review:requested` → independent review → `review:findings` → repair →
-`review:resolved` → `review:requested` → current head clear (`review:clear`) → merge.
+`review:resolved` → `review:requested` → current head clean (`review:clean`) → merge.
 Unresolved decisions use `review:needs-human`. Remove only obsolete state labels.
 The labels are `review:requested`, `review:in-progress`, `review:findings`,
-`review:resolving`, `review:resolved`, `review:clear` and `review:needs-human`;
-create them in each enrolled repository. If Moonlighter is running, its PR
+`review:resolving`, `review:resolved`, `review:clean` and `review:needs-human`;
+create them in each enrolled repository. `review:clean` is the canonical name. The
+merge gate also accepts the older `review:clear` during a transition, so
+repositories labelled before the rename keep merging; do not apply both. If Moonlighter is running, its PR
 labeller adds `review:requested` to new PRs and strips a stale verdict when the
 head moves on ([details](../moonlighter/README.md#review-labels-and-markers)).
 
