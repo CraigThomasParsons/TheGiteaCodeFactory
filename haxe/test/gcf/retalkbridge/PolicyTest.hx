@@ -64,6 +64,8 @@ class PolicyTest extends utest.Test {
 		Assert.equals("rate_limited", quietLimit.kind);
 		var talkAboutLimits = Policy.classifyClaude(0, '{"type":"result","is_error":false,"result":"The API has a rate limit of 10 rps.","session_id":"s1"}', "", NOW);
 		Assert.equals("ok", talkAboutLimits.kind);
+		for (field in ["api_error_status", "apiErrorStatus"])
+			Assert.equals("rate_limited", Policy.classifyClaude(1, '{"type":"result","is_error":true,"result":"API Error","$field":429}', "", NOW).kind);
 		Assert.equals("failed", Policy.classifyClaude(1, "", "segfault", NOW).kind);
 		Assert.equals("failed", Policy.classifyClaude(0, "", "", NOW).kind);
 	}
@@ -79,6 +81,20 @@ class PolicyTest extends utest.Test {
 		Assert.equals("rate_limited", limited.kind);
 		Assert.equals(NOW + 3600, limited.resetAt);
 		Assert.equals("failed", Policy.classifyCodex(1, '{"type":"turn.failed","error":{"message":"stream disconnected"}}', "", NOW).kind);
+		var stdoutOnly = Policy.classifyCodex(1, "You've hit your usage limit. Try again in 1h.\n", "", NOW);
+		Assert.equals("rate_limited", stdoutOnly.kind);
+		Assert.equals(NOW + 3600, stdoutOnly.resetAt);
+	}
+
+	function testParseResetAtAndTwentyFourHourClock() {
+		var morning = new Date(2026, 9, 1, 8, 0, 0).getTime() / 1000;
+		var afternoon = new Date(2026, 9, 1, 17, 20, 0).getTime() / 1000;
+		Assert.equals(afternoon, Policy.parseReset("You've hit your session limit · resets at 5:20pm (America/Toronto)", morning));
+		Assert.equals(afternoon, Policy.parseReset("Your limit resets at 17:20.", morning));
+		Assert.equals(afternoon, Policy.parseReset("resets 17:20 America/Toronto", morning));
+		Assert.equals(new Date(2026, 9, 3, 17, 0, 0).getTime() / 1000, Policy.parseReset("resets Oct 3 at 17:00", morning));
+		Assert.equals(morning - 3600 + 86400, Policy.parseReset("resets at 07:00", morning));
+		Assert.equals(0.0, Policy.parseReset("resets 5 times a day", morning));
 	}
 
 	function testCodexExhaustedUntil() {

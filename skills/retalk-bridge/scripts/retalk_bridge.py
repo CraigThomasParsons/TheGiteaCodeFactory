@@ -1258,7 +1258,7 @@ class gcf_retalkbridge_Main:
             None
             e = haxe_Exception.caught(_g).unwrap()
             gcf_retalkbridge_Main.log(side,"fetch_failed",_hx_AnonObject({'detail': Std.string(e)}))
-        x = gcf_retalkbridge_Main.setting("max_hops",2)
+        x = gcf_retalkbridge_Main.setting("max_hops",1)
         maxHops = None
         try:
             maxHops = int(x)
@@ -1371,7 +1371,7 @@ class gcf_retalkbridge_Main:
             gcf_retalkbridge_Main.log(side,"skipped_circuit_open",_hx_AnonObject({'until': circuitUntil, 'pending': waiting}))
             return
         resumes = ([] if ((Reflect.field(health,"resumes") is None)) else Reflect.field(health,"resumes"))
-        x = gcf_retalkbridge_Main.setting("max_resumes_per_hour",4)
+        x = gcf_retalkbridge_Main.setting("max_resumes_per_hour",2)
         perHour = None
         try:
             perHour = int(x)
@@ -1397,7 +1397,7 @@ class gcf_retalkbridge_Main:
 
     @staticmethod
     def runnable(side,entries):
-        x = gcf_retalkbridge_Main.setting("max_hops",2)
+        x = gcf_retalkbridge_Main.setting("max_hops",1)
         maxHops = None
         try:
             maxHops = int(x)
@@ -1474,7 +1474,7 @@ class gcf_retalkbridge_Main:
         if (len(batch) == 0):
             return
         dir = gcf_retalkbridge_Main.stateDir(side)
-        x = gcf_retalkbridge_Main.setting("max_hops",2)
+        x = gcf_retalkbridge_Main.setting("max_hops",1)
         maxHops = None
         try:
             maxHops = int(x)
@@ -1760,7 +1760,7 @@ gcf_retalkbridge_Main._hx_class = gcf_retalkbridge_Main
 class gcf_retalkbridge_Policy:
     _hx_class_name = "gcf.retalkbridge.Policy"
     __slots__ = ()
-    _hx_statics = ["HOP_PREFIX", "NO_REPLY", "parseJson", "parseReceive", "parseInbox", "hopOf", "stripHop", "markHop", "shouldResume", "replyAllowed", "recentCount", "limitText", "limitNotice", "parseReset", "num", "classifyClaude", "classifyCodex", "codexExhaustedUntil", "outcome", "firstLine", "resumePrompt", "hookContext", "isNoReply"]
+    _hx_statics = ["HOP_PREFIX", "NO_REPLY", "parseJson", "parseReceive", "parseInbox", "hopOf", "stripHop", "markHop", "shouldResume", "replyAllowed", "recentCount", "limitText", "limitNotice", "parseReset", "clockHour", "group", "num", "classifyClaude", "classifyCodex", "codexExhaustedUntil", "outcome", "firstLine", "resumePrompt", "hookContext", "isNoReply"]
 
     @staticmethod
     def parseJson(text):
@@ -1900,45 +1900,61 @@ class gcf_retalkbridge_Policy:
             s = gcf_retalkbridge_Policy.num(duration,3)
             if (((h + m) + s) > 0):
                 return (((now + ((h * 3600))) + ((m * 60))) + s)
-        dated = EReg("(?:resets?|try again at)\\s+(?:on\\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?\\s+([0-9]{1,2})(?:st|nd|rd|th)?,?\\s*(?:([0-9]{4}),?\\s*)?(?:at\\s+)?([0-9]{1,2})(?::([0-9]{2}))?\\s*(am|pm)","i")
+        dated = EReg("(?:resets?(?:\\s+at)?|try again at)\\s+(?:on\\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?\\s+([0-9]{1,2})(?:st|nd|rd|th)?,?\\s*(?:([0-9]{4}),?\\s*)?(?:at\\s+)?([0-9]{1,2})(?::([0-9]{2}))?\\s*(?:(am|pm)\\b)?","i")
         dated.matchObj = python_lib_Re.search(dated.pattern,text)
         if (dated.matchObj is not None):
-            month = python_internal_ArrayImpl.indexOf(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"],dated.matchObj.group(1).lower(),None)
-            hour = HxOverrides.mod(gcf_retalkbridge_Policy.num(dated,4), 12)
-            if (dated.matchObj.group(6).lower() == "pm"):
-                hour = (hour + 12)
-            today = Date.fromTime((now * 1000))
-            year = (gcf_retalkbridge_Policy.num(dated,3) if ((gcf_retalkbridge_Policy.num(dated,3) > 0)) else today.date.year)
-            at = ((Date(year,month,gcf_retalkbridge_Policy.num(dated,2),hour,gcf_retalkbridge_Policy.num(dated,5),0).date.timestamp() * 1000) / 1000)
-            if ((gcf_retalkbridge_Policy.num(dated,3) == 0) and ((at < ((now - 86400))))):
-                return ((Date((year + 1),month,gcf_retalkbridge_Policy.num(dated,2),hour,gcf_retalkbridge_Policy.num(dated,5),0).date.timestamp() * 1000) / 1000)
-            else:
-                return at
-        clock = EReg("(?:resets?|try again at)\\s+([0-9]{1,2})(?::([0-9]{2}))?\\s*(am|pm)","i")
+            hour = gcf_retalkbridge_Policy.clockHour(dated,4,5,6)
+            if (hour >= 0):
+                month = python_internal_ArrayImpl.indexOf(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"],dated.matchObj.group(1).lower(),None)
+                today = Date.fromTime((now * 1000))
+                year = (gcf_retalkbridge_Policy.num(dated,3) if ((gcf_retalkbridge_Policy.num(dated,3) > 0)) else today.date.year)
+                at = ((Date(year,month,gcf_retalkbridge_Policy.num(dated,2),hour,gcf_retalkbridge_Policy.num(dated,5),0).date.timestamp() * 1000) / 1000)
+                if ((gcf_retalkbridge_Policy.num(dated,3) == 0) and ((at < ((now - 86400))))):
+                    return ((Date((year + 1),month,gcf_retalkbridge_Policy.num(dated,2),hour,gcf_retalkbridge_Policy.num(dated,5),0).date.timestamp() * 1000) / 1000)
+                else:
+                    return at
+        clock = EReg("(?:resets?(?:\\s+at)?|try again at)\\s+([0-9]{1,2})(?::([0-9]{2}))?\\s*(?:(am|pm)\\b)?","i")
         clock.matchObj = python_lib_Re.search(clock.pattern,text)
         if (clock.matchObj is not None):
-            hour = HxOverrides.mod(gcf_retalkbridge_Policy.num(clock,1), 12)
-            if (clock.matchObj.group(3).lower() == "pm"):
-                hour = (hour + 12)
-            today = Date.fromTime((now * 1000))
-            at = ((Date(today.date.year,(today.date.month - 1),today.date.day,hour,gcf_retalkbridge_Policy.num(clock,2),0).date.timestamp() * 1000) / 1000)
-            if (at <= now):
-                return (at + 86400)
-            else:
-                return at
+            hour = gcf_retalkbridge_Policy.clockHour(clock,1,2,3)
+            if (hour >= 0):
+                today = Date.fromTime((now * 1000))
+                at = ((Date(today.date.year,(today.date.month - 1),today.date.day,hour,gcf_retalkbridge_Policy.num(clock,2),0).date.timestamp() * 1000) / 1000)
+                if (at <= now):
+                    return (at + 86400)
+                else:
+                    return at
         return 0
 
     @staticmethod
-    def num(re,group):
+    def clockHour(re,hourGroup,minuteGroup,meridiemGroup):
+        hour = gcf_retalkbridge_Policy.num(re,hourGroup)
+        meridiem = gcf_retalkbridge_Policy.group(re,meridiemGroup).lower()
+        if (meridiem == ""):
+            if ((gcf_retalkbridge_Policy.group(re,minuteGroup) != "") and ((hour < 24))):
+                return hour
+            else:
+                return -1
+        if ((hour < 1) or ((hour > 12))):
+            return -1
+        return (HxOverrides.mod(hour, 12) + ((12 if ((meridiem == "pm")) else 0)))
+
+    @staticmethod
+    def group(re,index):
         value = None
         try:
-            value = re.matchObj.group(group)
+            value = re.matchObj.group(index)
         except BaseException as _g:
             None
             value = None
         if (value is None):
-            return 0
-        parsed = Std.parseInt(value)
+            return ""
+        else:
+            return value
+
+    @staticmethod
+    def num(re,index):
+        parsed = Std.parseInt(gcf_retalkbridge_Policy.group(re,index))
         if (parsed is None):
             return 0
         else:
@@ -1971,7 +1987,7 @@ class gcf_retalkbridge_Policy:
         result = ("" if ((Reflect.field(record,"result") is None)) else Std.string(Reflect.field(record,"result")))
         session = ("" if ((Reflect.field(record,"session_id") is None)) else Std.string(Reflect.field(record,"session_id")))
         isError = ((Reflect.field(record,"is_error") == True) or ((exitCode != 0)))
-        status = Reflect.field(record,"api_error_status")
+        status = (Reflect.field(record,"api_error_status") if ((Reflect.field(record,"api_error_status") is not None)) else Reflect.field(record,"apiErrorStatus"))
         if ((isError and (((gcf_retalkbridge_Policy.limitText(result) or gcf_retalkbridge_Policy.limitText(combined)) or ((status == 429))))) or gcf_retalkbridge_Policy.limitNotice(result)):
             return gcf_retalkbridge_Policy.outcome("rate_limited","",session,gcf_retalkbridge_Policy.parseReset(((("null" if result is None else result) + "\n") + ("null" if combined is None else combined)),now),gcf_retalkbridge_Policy.firstLine(result))
         if isError:
@@ -2018,7 +2034,7 @@ class gcf_retalkbridge_Policy:
                 pass
         combined = ((((("null" if error is None else error) + "\n") + ("null" if stderr is None else stderr)) + "\n") + HxOverrides.stringOrNull(((stdout if ((failed or ((exitCode != 0)))) else ""))))
         if (failed or ((exitCode != 0))):
-            if (gcf_retalkbridge_Policy.limitText(error) or gcf_retalkbridge_Policy.limitText(stderr)):
+            if gcf_retalkbridge_Policy.limitText(combined):
                 return gcf_retalkbridge_Policy.outcome("rate_limited","",session,gcf_retalkbridge_Policy.parseReset(combined,now),gcf_retalkbridge_Policy.firstLine((stderr if ((error == "")) else error)))
             return gcf_retalkbridge_Policy.outcome("failed","",session,0,gcf_retalkbridge_Policy.firstLine((stderr if ((error == "")) else error)))
         if gcf_retalkbridge_Policy.limitNotice(reply):

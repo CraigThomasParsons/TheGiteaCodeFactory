@@ -93,10 +93,13 @@ only for the idle-side watcher.
 | Prompt injection | Messages are labelled as coming from another agent, not the user; watcher runs are read-only (`-s read-only`, `--disallowedTools` in the example config) |
 
 Rate-limit text the bridge recognises (observed and documented forms): Claude
-`You've hit your session limit · resets 5:20pm (America/Toronto)` with
-`apiErrorStatus 429` or `is_error`; Codex `turn.failed` with a usage-limit
-message and `Try again in …`; generic `429`, `rate limit`, `quota exceeded`,
-`RESOURCE_EXHAUSTED`. A clock time without a date is taken in the local zone.
+`You've hit your session limit · resets 5:20pm (America/Toronto)` with an
+API error status of 429 (read from `api_error_status` or `apiErrorStatus`) or
+`is_error`; Codex `turn.failed` or a failed run whose output carries a
+usage-limit message and `Try again in …`; generic `429`, `rate limit`,
+`quota exceeded`, `RESOURCE_EXHAUSTED`. Reset times may be written
+`resets 5:20pm`, `resets at 17:20` or with a date; a clock time without a date
+is taken in the local zone.
 
 ## Install and remove
 

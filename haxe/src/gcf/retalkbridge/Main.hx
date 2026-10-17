@@ -406,7 +406,7 @@ class Main {
 		if (stop && event.stop_hook_active == true)
 			return; // this turn already continued because of a Stop hook: block at most once
 		try fetch(side) catch (e:Dynamic) log(side, "fetch_failed", {detail: Std.string(e)});
-		var maxHops = Std.int(setting("max_hops", 2));
+		var maxHops = Std.int(setting("max_hops", 1));
 		var fresh:Array<Message> = [];
 		var notes:Array<String> = [];
 		withLock(stateDir(side) + "/spool.lock", true, function() {
@@ -486,7 +486,7 @@ class Main {
 			return;
 		}
 		var resumes:Array<Float> = health.resumes == null ? [] : health.resumes;
-		var perHour = Std.int(setting("max_resumes_per_hour", 4));
+		var perHour = Std.int(setting("max_resumes_per_hour", 2));
 		if (Policy.recentCount(resumes, t, 3600) >= perHour) {
 			log(side, "skipped_hourly_cap", {cap: perHour, pending: waiting});
 			return;
@@ -508,7 +508,7 @@ class Main {
 
 	/** Mark pending entries past the hop limit `held` and those out of attempts `dead`; return the pending rest. **/
 	static function runnable(side:String, entries:Array<Dynamic>):Array<Dynamic> {
-		var maxHops = Std.int(setting("max_hops", 2));
+		var maxHops = Std.int(setting("max_hops", 1));
 		var maxAttempts = Std.int(setting("max_attempts_per_message", 2));
 		var batch:Array<Dynamic> = [];
 		for (entry in entries) {
@@ -574,7 +574,7 @@ class Main {
 		if (batch.length == 0)
 			return;
 		var dir = stateDir(side);
-		var maxHops = Std.int(setting("max_hops", 2));
+		var maxHops = Std.int(setting("max_hops", 1));
 		var top = 0;
 		for (entry in batch)
 			if (entry.hop > top)

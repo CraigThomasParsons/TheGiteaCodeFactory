@@ -154,7 +154,7 @@ class Policy {
 		The reset time a limit message names, as Unix seconds, or 0.
 		Understands an epoch (`"resets_at": 1773853402`), a duration
 		(`Resets in 2h40m11s`, `try again in 15 minutes`) and a local clock time
-		(`resets 5:20pm`, `try again at 4:12 PM`), or a date and time
+		(`resets 5:20pm`, `resets at 17:20`, `try again at 4:12 PM`), or a date and time
 		(`try again at Oct 17th, 2026 2:07 AM`, `resets Oct 3, 12pm`); a clock time already past
 		today means tomorrow. A trailing zone name is ignored: the local zone is used.
 	**/
@@ -168,35 +168,48 @@ class Policy {
 			if (h + m + s > 0)
 				return now + h * 3600 + m * 60 + s;
 		}
-		var dated = ~/(?:resets?|try again at)\s+(?:on\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+([0-9]{1,2})(?:st|nd|rd|th)?,?\s*(?:([0-9]{4}),?\s*)?(?:at\s+)?([0-9]{1,2})(?::([0-9]{2}))?\s*(am|pm)/i;
+		var dated = ~/(?:resets?(?:\s+at)?|try again at)\s+(?:on\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+([0-9]{1,2})(?:st|nd|rd|th)?,?\s*(?:([0-9]{4}),?\s*)?(?:at\s+)?([0-9]{1,2})(?::([0-9]{2}))?\s*(?:(am|pm)\b)?/i;
 		if (dated.match(text)) {
-			var month = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].indexOf(dated.matched(1).toLowerCase());
-			var hour = num(dated, 4) % 12;
-			if (dated.matched(6).toLowerCase() == "pm")
-				hour += 12;
-			var today = Date.fromTime(now * 1000);
-			var year = num(dated, 3) > 0 ? num(dated, 3) : today.getFullYear();
-			var at = new Date(year, month, num(dated, 2), hour, num(dated, 5), 0).getTime() / 1000;
-			// no year given and the date already passed: it means next year
-			return (num(dated, 3) == 0 && at < now - 86400) ? new Date(year + 1, month, num(dated, 2), hour, num(dated, 5), 0).getTime() / 1000 : at;
+			var hour = clockHour(dated, 4, 5, 6);
+			if (hour >= 0) {
+				var month = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].indexOf(dated.matched(1).toLowerCase());
+				var today = Date.fromTime(now * 1000);
+				var year = num(dated, 3) > 0 ? num(dated, 3) : today.getFullYear();
+				var at = new Date(year, month, num(dated, 2), hour, num(dated, 5), 0).getTime() / 1000;
+				// no year given and the date already passed: it means next year
+				return (num(dated, 3) == 0 && at < now - 86400) ? new Date(year + 1, month, num(dated, 2), hour, num(dated, 5), 0).getTime() / 1000 : at;
+			}
 		}
-		var clock = ~/(?:resets?|try again at)\s+([0-9]{1,2})(?::([0-9]{2}))?\s*(am|pm)/i;
+		var clock = ~/(?:resets?(?:\s+at)?|try again at)\s+([0-9]{1,2})(?::([0-9]{2}))?\s*(?:(am|pm)\b)?/i;
 		if (clock.match(text)) {
-			var hour = num(clock, 1) % 12;
-			if (clock.matched(3).toLowerCase() == "pm")
-				hour += 12;
-			var today = Date.fromTime(now * 1000);
-			var at = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour, num(clock, 2), 0).getTime() / 1000;
-			return at <= now ? at + 86400 : at;
+			var hour = clockHour(clock, 1, 2, 3);
+			if (hour >= 0) {
+				var today = Date.fromTime(now * 1000);
+				var at = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour, num(clock, 2), 0).getTime() / 1000;
+				return at <= now ? at + 86400 : at;
+			}
 		}
 		return 0;
 	}
 
-	static function num(re:EReg, group:Int):Int {
-		var value = try re.matched(group) catch (e:Dynamic) null;
-		if (value == null)
-			return 0;
-		var parsed = Std.parseInt(value);
+	/** The hour (0-23) a matched clock time names, or -1 when it is none: a 24-hour time needs its minutes. **/
+	static function clockHour(re:EReg, hourGroup:Int, minuteGroup:Int, meridiemGroup:Int):Int {
+		var hour = num(re, hourGroup);
+		var meridiem = group(re, meridiemGroup).toLowerCase();
+		if (meridiem == "")
+			return group(re, minuteGroup) != "" && hour < 24 ? hour : -1;
+		if (hour < 1 || hour > 12)
+			return -1;
+		return hour % 12 + (meridiem == "pm" ? 12 : 0);
+	}
+
+	static function group(re:EReg, index:Int):String {
+		var value:Null<String> = try re.matched(index) catch (e:Dynamic) null;
+		return value == null ? "" : value;
+	}
+
+	static function num(re:EReg, index:Int):Int {
+		var parsed = Std.parseInt(group(re, index));
 		return parsed == null ? 0 : parsed;
 	}
 
@@ -221,7 +234,7 @@ class Policy {
 		var result:String = record.result == null ? "" : Std.string(record.result);
 		var session:String = record.session_id == null ? "" : Std.string(record.session_id);
 		var isError = record.is_error == true || exitCode != 0;
-		var status:Dynamic = record.api_error_status;
+		var status:Dynamic = record.api_error_status != null ? record.api_error_status : record.apiErrorStatus;
 		if ((isError && (limitText(result) || limitText(combined) || status == 429)) || limitNotice(result))
 			return outcome("rate_limited", "", session, parseReset(result + "\n" + combined, now), firstLine(result));
 		if (isError)
@@ -259,7 +272,7 @@ class Policy {
 		}
 		var combined = error + "\n" + stderr + "\n" + (failed || exitCode != 0 ? stdout : "");
 		if (failed || exitCode != 0) {
-			if (limitText(error) || limitText(stderr))
+			if (limitText(combined))
 				return outcome("rate_limited", "", session, parseReset(combined, now), firstLine(error == "" ? stderr : error));
 			return outcome("failed", "", session, 0, firstLine(error == "" ? stderr : error));
 		}
