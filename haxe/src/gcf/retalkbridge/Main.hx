@@ -423,7 +423,7 @@ class Main {
 			}
 			if (!stop || fresh.length > 0)
 				for (entry in entries)
-					if (entry.status == "answered" && entry.noted != true) {
+					if ((entry.status == "answered" || entry.status == "reply_failed") && entry.noted != true) {
 						notes.push(entry.id + ": " + entry.reply_summary);
 						entry.noted = true;
 					}
@@ -458,49 +458,37 @@ class Main {
 			return;
 		try fetch(side) catch (e:Dynamic) log(side, "fetch_failed", {detail: Std.string(e)});
 		var dir = stateDir(side);
-		var maxHops = Std.int(setting("max_hops", 2));
-		var maxAttempts = Std.int(setting("max_attempts_per_message", 2));
-		var batch:Array<Dynamic> = [];
+		var waiting = 0;
 		withLock(dir + "/spool.lock", true, function() {
 			var entries = spool(side);
-			var changed = false;
-			for (entry in entries) {
-				if (entry.status != "pending")
-					continue;
-				if (!Policy.shouldResume(entry.hop, maxHops)) {
-					entry.status = "held"; // past the hop limit: shown to a live session at its next prompt
-					changed = true;
-					log(side, "hop_limit_held", {id: entry.id, hop: entry.hop});
-				} else if (entry.attempts >= maxAttempts) {
-					entry.status = "dead";
-					changed = true;
-					log(side, "gave_up", {id: entry.id, attempts: entry.attempts});
-				} else {
-					batch.push(entry);
-				}
-			}
-			if (changed)
+			var pending = [for (entry in entries) if (entry.status == "pending") entry].length;
+			waiting = runnable(side, entries).length;
+			if (waiting != pending)
 				saveSpool(side, entries);
+			// A claim left by a run that crashed is released once resume.lock is free (see claim).
+			for (entry in entries)
+				if (entry.status == "resuming")
+					waiting++;
 		});
-		if (batch.length == 0)
+		if (waiting == 0)
 			return;
 
 		var health:Dynamic = readJson(dir + "/health.json", {});
 		var t = now();
 		var benchedUntil:Float = health.benched_until == null ? 0 : health.benched_until;
 		if (benchedUntil > t) {
-			log(side, "skipped_benched", {until: benchedUntil, pending: batch.length});
+			log(side, "skipped_benched", {until: benchedUntil, pending: waiting});
 			return;
 		}
 		var circuitUntil:Float = health.circuit_open_until == null ? 0 : health.circuit_open_until;
 		if (circuitUntil > t) {
-			log(side, "skipped_circuit_open", {until: circuitUntil, pending: batch.length});
+			log(side, "skipped_circuit_open", {until: circuitUntil, pending: waiting});
 			return;
 		}
 		var resumes:Array<Float> = health.resumes == null ? [] : health.resumes;
 		var perHour = Std.int(setting("max_resumes_per_hour", 4));
 		if (Policy.recentCount(resumes, t, 3600) >= perHour) {
-			log(side, "skipped_hourly_cap", {cap: perHour, pending: batch.length});
+			log(side, "skipped_hourly_cap", {cap: perHour, pending: waiting});
 			return;
 		}
 		if (conf.cli == "codex") {
@@ -513,9 +501,55 @@ class Main {
 				return;
 			}
 		}
-		var ran = withLock(dir + "/resume.lock", false, function() resume(side, conf, batch, health));
+		var ran = withLock(dir + "/resume.lock", false, function() resume(side, conf, health));
 		if (!ran)
 			log(side, "skipped_resume_in_progress", null);
+	}
+
+	/** Mark pending entries past the hop limit `held` and those out of attempts `dead`; return the pending rest. **/
+	static function runnable(side:String, entries:Array<Dynamic>):Array<Dynamic> {
+		var maxHops = Std.int(setting("max_hops", 2));
+		var maxAttempts = Std.int(setting("max_attempts_per_message", 2));
+		var batch:Array<Dynamic> = [];
+		for (entry in entries) {
+			if (entry.status != "pending")
+				continue;
+			if (!Policy.shouldResume(entry.hop, maxHops)) {
+				entry.status = "held"; // past the hop limit: shown to a live session at its next prompt
+				log(side, "hop_limit_held", {id: entry.id, hop: entry.hop});
+			} else if (entry.attempts >= maxAttempts) {
+				entry.status = "dead";
+				log(side, "gave_up", {id: entry.id, attempts: entry.attempts});
+			} else {
+				batch.push(entry);
+			}
+		}
+		return batch;
+	}
+
+	/**
+		Claim the runnable entries as `resuming`, so hooks leave them alone while
+		the CLI runs, and count the attempt. Called only while holding resume.lock,
+		so any entry already `resuming` belongs to a run that died: it is released first.
+	**/
+	static function claim(side:String):Array<Dynamic> {
+		var batch:Array<Dynamic> = [];
+		withLock(stateDir(side) + "/spool.lock", true, function() {
+			var entries = spool(side);
+			for (entry in entries)
+				if (entry.status == "resuming") {
+					entry.status = "pending";
+					log(side, "stale_claim_released", {id: entry.id});
+				}
+			batch = runnable(side, entries);
+			for (entry in batch) {
+				entry.status = "resuming";
+				// Counted before running, so a crash mid-run can never retry forever.
+				entry.attempts = entry.attempts + 1;
+			}
+			saveSpool(side, entries);
+		});
+		return batch;
 	}
 
 	/** Pick the session to wake: the bridge's own session by default, or the last hook-seen session when it has gone quiet. **/
@@ -535,7 +569,10 @@ class Main {
 		return {id: "", cwd: fallbackCwd};
 	}
 
-	static function resume(side:String, conf:Dynamic, batch:Array<Dynamic>, health:Dynamic):Void {
+	static function resume(side:String, conf:Dynamic, health:Dynamic):Void {
+		var batch = claim(side);
+		if (batch.length == 0)
+			return;
 		var dir = stateDir(side);
 		var maxHops = Std.int(setting("max_hops", 2));
 		var top = 0;
@@ -544,8 +581,11 @@ class Main {
 				top = entry.hop;
 		var mayReply = Policy.replyAllowed(top, maxHops);
 		var ids = [for (entry in batch) entry.id];
-		// Count the attempt before running, so a crash mid-run can never retry forever.
-		updateEntries(side, ids, function(entry) entry.attempts = entry.attempts + 1);
+		function settle(status:String, summary:String)
+			updateEntries(side, ids, function(entry) {
+				entry.status = status;
+				entry.reply_summary = summary;
+			});
 		var target = targetSession(side, conf);
 		var prompt = Policy.resumePrompt(conf.peer, [for (entry in batch) toMessage(entry)], mayReply);
 		var binary = expand(conf.binary == null ? conf.cli : conf.binary);
@@ -578,37 +618,49 @@ class Main {
 				health.failures = 0;
 				if (outcome.sessionId != "" && (target.id == "" || target.id == outcome.sessionId || conf.resume_target != "latest"))
 					writeJson(dir + "/bridge-session.json", {session_id: outcome.sessionId, cwd: target.cwd});
-				var noReply = Policy.isNoReply(outcome.reply);
-				var summary = noReply ? "(no reply)" : (mayReply ? "replied: " : "reply not sent (hop limit): ") + clip(outcome.reply, 300);
-				updateEntries(side, ids, function(entry) {
-					entry.status = "answered";
-					entry.reply_summary = summary;
-				});
 				log(side, "resume_ok", {session: outcome.sessionId, exit_code: result.code, reply: clip(outcome.reply, 500)});
-				if (!noReply && mayReply)
-					send(side, outcome.reply, top + 1);
-				else if (!noReply)
+				if (Policy.isNoReply(outcome.reply)) {
+					settle("answered", "(no reply)");
+				} else if (!mayReply) {
+					settle("answered", "reply not sent (hop limit): " + clip(outcome.reply, 300));
 					log(side, "reply_suppressed_hop_limit", {hop: top + 1, max_hops: maxHops});
+				} else if (send(side, outcome.reply, top + 1)) {
+					settle("answered", "replied: " + clip(outcome.reply, 300));
+				} else {
+					// Shown to the live session like an answer, so a person can resend it.
+					settle("reply_failed", "reply NOT sent (retalk send failed): " + clip(outcome.reply, 300));
+					log(side, "reply_failed", {messages: ids});
+					countFailure(side, health);
+				}
 			case "rate_limited":
 				var backoff = Std.parseFloat(Std.string(setting("default_backoff_minutes", 30))) * 60;
 				var until = outcome.resetAt > now() ? outcome.resetAt : now() + backoff;
 				health.benched_until = until;
 				health.bench_reason = outcome.detail;
 				// The provider refused before doing work: this attempt does not count against the message.
-				updateEntries(side, ids, function(entry) entry.attempts = entry.attempts - 1);
+				updateEntries(side, ids, function(entry) {
+					entry.status = "pending";
+					entry.attempts = entry.attempts - 1;
+				});
 				log(side, "rate_limited", {until: until, reset_from_output: outcome.resetAt > 0, exit_code: result.code, detail: outcome.detail});
 			default:
-				var failures:Int = health.failures == null ? 0 : health.failures;
-				failures++;
-				health.failures = failures;
-				if (failures >= Std.int(setting("circuit_breaker_failures", 3))) {
-					health.circuit_open_until = now() + Std.parseFloat(Std.string(setting("circuit_open_minutes", 60))) * 60;
-					health.failures = 0;
-					log(side, "circuit_opened", {until: health.circuit_open_until});
-				}
+				updateEntries(side, ids, function(entry) entry.status = "pending");
+				countFailure(side, health);
 				log(side, "resume_failed", {exit_code: result.code, detail: outcome.detail});
 		}
 		writeJson(dir + "/health.json", health);
+	}
+
+	/** Count one failed run or send towards the circuit breaker. **/
+	static function countFailure(side:String, health:Dynamic):Void {
+		var failures:Int = health.failures == null ? 0 : health.failures;
+		failures++;
+		health.failures = failures;
+		if (failures >= Std.int(setting("circuit_breaker_failures", 3))) {
+			health.circuit_open_until = now() + Std.parseFloat(Std.string(setting("circuit_open_minutes", 60))) * 60;
+			health.failures = 0;
+			log(side, "circuit_opened", {until: health.circuit_open_until});
+		}
 	}
 
 	static function clip(text:String, limit:Int):String {

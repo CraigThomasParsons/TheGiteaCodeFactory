@@ -704,7 +704,7 @@ gcf_retalkbridge_Failure._hx_class = gcf_retalkbridge_Failure
 class gcf_retalkbridge_Main:
     _hx_class_name = "gcf.retalkbridge.Main"
     __slots__ = ()
-    _hx_statics = ["config", "configPath", "main", "USAGE", "usage", "parseOptions", "home", "expand", "loadConfig", "setting", "sideNames", "sideConfig", "requireSide", "stateDir", "readJson", "writeJson", "now", "stamp", "log", "withLock", "run", "spool", "saveSpool", "fetch", "readInbox", "firstLine", "toMessage", "send", "hookAllowed", "hook", "scriptPath", "tick", "targetSession", "resume", "clip", "updateEntries", "codexExhaustedUntil", "status", "MARKER", "installHooks", "mergeHookFile", "isOurs"]
+    _hx_statics = ["config", "configPath", "main", "USAGE", "usage", "parseOptions", "home", "expand", "loadConfig", "setting", "sideNames", "sideConfig", "requireSide", "stateDir", "readJson", "writeJson", "now", "stamp", "log", "withLock", "run", "spool", "saveSpool", "fetch", "readInbox", "firstLine", "toMessage", "send", "hookAllowed", "hook", "scriptPath", "tick", "runnable", "claim", "targetSession", "resume", "countFailure", "clip", "updateEntries", "codexExhaustedUntil", "status", "MARKER", "installHooks", "mergeHookFile", "isOurs"]
     config = None
     configPath = None
 
@@ -1284,7 +1284,7 @@ class gcf_retalkbridge_Main:
                 while (_g < len(entries)):
                     entry = (entries[_g] if _g >= 0 and _g < len(entries) else None)
                     _g = (_g + 1)
-                    if ((Reflect.field(entry,"status") == "answered") and ((Reflect.field(entry,"noted") != True))):
+                    if ((((Reflect.field(entry,"status") == "answered") or ((Reflect.field(entry,"status") == "reply_failed")))) and ((Reflect.field(entry,"noted") != True))):
                         x = ((Std.string(Reflect.field(entry,"id")) + ": ") + Std.string(Reflect.field(entry,"reply_summary")))
                         notes.append(x)
                         Reflect.setField(entry,"noted",True)
@@ -1335,6 +1335,68 @@ class gcf_retalkbridge_Main:
             e = haxe_Exception.caught(_g).unwrap()
             gcf_retalkbridge_Main.log(side,"fetch_failed",_hx_AnonObject({'detail': Std.string(e)}))
         dir = gcf_retalkbridge_Main.stateDir(side)
+        waiting = 0
+        def _hx_local_3():
+            nonlocal waiting
+            nonlocal waiting
+            entries = gcf_retalkbridge_Main.spool(side)
+            _g = []
+            _g1 = 0
+            while (_g1 < len(entries)):
+                entry = (entries[_g1] if _g1 >= 0 and _g1 < len(entries) else None)
+                _g1 = (_g1 + 1)
+                if (Reflect.field(entry,"status") == "pending"):
+                    _g.append(entry)
+            pending = len(_g)
+            waiting = len(gcf_retalkbridge_Main.runnable(side,entries))
+            if (waiting != pending):
+                gcf_retalkbridge_Main.saveSpool(side,entries)
+            _g = 0
+            while (_g < len(entries)):
+                entry = (entries[_g] if _g >= 0 and _g < len(entries) else None)
+                _g = (_g + 1)
+                if (Reflect.field(entry,"status") == "resuming"):
+                    waiting = (waiting + 1)
+        gcf_retalkbridge_Main.withLock((("null" if dir is None else dir) + "/spool.lock"),True,_hx_local_3)
+        if (waiting == 0):
+            return
+        health = gcf_retalkbridge_Main.readJson((("null" if dir is None else dir) + "/health.json"),_hx_AnonObject({}))
+        t = gcf_retalkbridge_Main.now()
+        benchedUntil = (0 if ((Reflect.field(health,"benched_until") is None)) else Reflect.field(health,"benched_until"))
+        if (benchedUntil > t):
+            gcf_retalkbridge_Main.log(side,"skipped_benched",_hx_AnonObject({'until': benchedUntil, 'pending': waiting}))
+            return
+        circuitUntil = (0 if ((Reflect.field(health,"circuit_open_until") is None)) else Reflect.field(health,"circuit_open_until"))
+        if (circuitUntil > t):
+            gcf_retalkbridge_Main.log(side,"skipped_circuit_open",_hx_AnonObject({'until': circuitUntil, 'pending': waiting}))
+            return
+        resumes = ([] if ((Reflect.field(health,"resumes") is None)) else Reflect.field(health,"resumes"))
+        x = gcf_retalkbridge_Main.setting("max_resumes_per_hour",4)
+        perHour = None
+        try:
+            perHour = int(x)
+        except BaseException as _g:
+            None
+            perHour = None
+        if (gcf_retalkbridge_Policy.recentCount(resumes,t,3600) >= perHour):
+            gcf_retalkbridge_Main.log(side,"skipped_hourly_cap",_hx_AnonObject({'cap': perHour, 'pending': waiting}))
+            return
+        if (conf.cli == "codex"):
+            until = gcf_retalkbridge_Main.codexExhaustedUntil(t)
+            if (until > t):
+                Reflect.setField(health,"benched_until",until)
+                Reflect.setField(health,"bench_reason","codex rate_limits at 100% in the latest session log")
+                gcf_retalkbridge_Main.writeJson((("null" if dir is None else dir) + "/health.json"),health)
+                gcf_retalkbridge_Main.log(side,"benched_precheck",_hx_AnonObject({'until': until}))
+                return
+        def _hx_local_4():
+            gcf_retalkbridge_Main.resume(side,conf,health)
+        ran = gcf_retalkbridge_Main.withLock((("null" if dir is None else dir) + "/resume.lock"),False,_hx_local_4)
+        if (not ran):
+            gcf_retalkbridge_Main.log(side,"skipped_resume_in_progress",None)
+
+    @staticmethod
+    def runnable(side,entries):
         x = gcf_retalkbridge_Main.setting("max_hops",2)
         maxHops = None
         try:
@@ -1350,64 +1412,46 @@ class gcf_retalkbridge_Main:
             None
             maxAttempts = None
         batch = []
-        def _hx_local_1():
+        _g = 0
+        while (_g < len(entries)):
+            entry = (entries[_g] if _g >= 0 and _g < len(entries) else None)
+            _g = (_g + 1)
+            if (Reflect.field(entry,"status") != "pending"):
+                continue
+            if (not gcf_retalkbridge_Policy.shouldResume(Reflect.field(entry,"hop"),maxHops)):
+                Reflect.setField(entry,"status","held")
+                gcf_retalkbridge_Main.log(side,"hop_limit_held",_hx_AnonObject({'id': Reflect.field(entry,"id"), 'hop': Reflect.field(entry,"hop")}))
+            elif (Reflect.field(entry,"attempts") >= maxAttempts):
+                Reflect.setField(entry,"status","dead")
+                gcf_retalkbridge_Main.log(side,"gave_up",_hx_AnonObject({'id': Reflect.field(entry,"id"), 'attempts': Reflect.field(entry,"attempts")}))
+            else:
+                batch.append(entry)
+        return batch
+
+    @staticmethod
+    def claim(side):
+        batch = []
+        def _hx_local_3():
+            nonlocal batch
             entries = gcf_retalkbridge_Main.spool(side)
-            changed = False
             _g = 0
             while (_g < len(entries)):
                 entry = (entries[_g] if _g >= 0 and _g < len(entries) else None)
                 _g = (_g + 1)
-                if (Reflect.field(entry,"status") != "pending"):
-                    continue
-                if (not gcf_retalkbridge_Policy.shouldResume(Reflect.field(entry,"hop"),maxHops)):
-                    Reflect.setField(entry,"status","held")
-                    changed = True
-                    gcf_retalkbridge_Main.log(side,"hop_limit_held",_hx_AnonObject({'id': Reflect.field(entry,"id"), 'hop': Reflect.field(entry,"hop")}))
-                elif (Reflect.field(entry,"attempts") >= maxAttempts):
-                    Reflect.setField(entry,"status","dead")
-                    changed = True
-                    gcf_retalkbridge_Main.log(side,"gave_up",_hx_AnonObject({'id': Reflect.field(entry,"id"), 'attempts': Reflect.field(entry,"attempts")}))
-                else:
-                    batch.append(entry)
-            if changed:
-                gcf_retalkbridge_Main.saveSpool(side,entries)
-        gcf_retalkbridge_Main.withLock((("null" if dir is None else dir) + "/spool.lock"),True,_hx_local_1)
-        if (len(batch) == 0):
-            return
-        health = gcf_retalkbridge_Main.readJson((("null" if dir is None else dir) + "/health.json"),_hx_AnonObject({}))
-        t = gcf_retalkbridge_Main.now()
-        benchedUntil = (0 if ((Reflect.field(health,"benched_until") is None)) else Reflect.field(health,"benched_until"))
-        if (benchedUntil > t):
-            gcf_retalkbridge_Main.log(side,"skipped_benched",_hx_AnonObject({'until': benchedUntil, 'pending': len(batch)}))
-            return
-        circuitUntil = (0 if ((Reflect.field(health,"circuit_open_until") is None)) else Reflect.field(health,"circuit_open_until"))
-        if (circuitUntil > t):
-            gcf_retalkbridge_Main.log(side,"skipped_circuit_open",_hx_AnonObject({'until': circuitUntil, 'pending': len(batch)}))
-            return
-        resumes = ([] if ((Reflect.field(health,"resumes") is None)) else Reflect.field(health,"resumes"))
-        x = gcf_retalkbridge_Main.setting("max_resumes_per_hour",4)
-        perHour = None
-        try:
-            perHour = int(x)
-        except BaseException as _g:
-            None
-            perHour = None
-        if (gcf_retalkbridge_Policy.recentCount(resumes,t,3600) >= perHour):
-            gcf_retalkbridge_Main.log(side,"skipped_hourly_cap",_hx_AnonObject({'cap': perHour, 'pending': len(batch)}))
-            return
-        if (conf.cli == "codex"):
-            until = gcf_retalkbridge_Main.codexExhaustedUntil(t)
-            if (until > t):
-                Reflect.setField(health,"benched_until",until)
-                Reflect.setField(health,"bench_reason","codex rate_limits at 100% in the latest session log")
-                gcf_retalkbridge_Main.writeJson((("null" if dir is None else dir) + "/health.json"),health)
-                gcf_retalkbridge_Main.log(side,"benched_precheck",_hx_AnonObject({'until': until}))
-                return
-        def _hx_local_2():
-            gcf_retalkbridge_Main.resume(side,conf,batch,health)
-        ran = gcf_retalkbridge_Main.withLock((("null" if dir is None else dir) + "/resume.lock"),False,_hx_local_2)
-        if (not ran):
-            gcf_retalkbridge_Main.log(side,"skipped_resume_in_progress",None)
+                if (Reflect.field(entry,"status") == "resuming"):
+                    Reflect.setField(entry,"status","pending")
+                    gcf_retalkbridge_Main.log(side,"stale_claim_released",_hx_AnonObject({'id': Reflect.field(entry,"id")}))
+            batch = gcf_retalkbridge_Main.runnable(side,entries)
+            _g = 0
+            while (_g < len(batch)):
+                entry = (batch[_g] if _g >= 0 and _g < len(batch) else None)
+                _g = (_g + 1)
+                Reflect.setField(entry,"status","resuming")
+                _hx_local_2 = entry
+                Reflect.setField(_hx_local_2,"attempts",python_Boot._add_dynamic(Reflect.field(_hx_local_2,"attempts"),1))
+            gcf_retalkbridge_Main.saveSpool(side,entries)
+        gcf_retalkbridge_Main.withLock((HxOverrides.stringOrNull(gcf_retalkbridge_Main.stateDir(side)) + "/spool.lock"),True,_hx_local_3)
+        return batch
 
     @staticmethod
     def targetSession(side,conf):
@@ -1425,7 +1469,10 @@ class gcf_retalkbridge_Main:
         return _hx_AnonObject({'id': "", 'cwd': fallbackCwd})
 
     @staticmethod
-    def resume(side,conf,batch,health):
+    def resume(side,conf,health):
+        batch = gcf_retalkbridge_Main.claim(side)
+        if (len(batch) == 0):
+            return
         dir = gcf_retalkbridge_Main.stateDir(side)
         x = gcf_retalkbridge_Main.setting("max_hops",2)
         maxHops = None
@@ -1450,9 +1497,12 @@ class gcf_retalkbridge_Main:
             x = Reflect.field(entry,"id")
             _g.append(x)
         ids = _g
-        def _hx_local_3(entry):
-            entry.attempts = (entry.attempts + 1)
-        gcf_retalkbridge_Main.updateEntries(side,ids,_hx_local_3)
+        def _hx_local_3(status,summary):
+            def _hx_local_2(entry):
+                entry.status = status
+                entry.reply_summary = summary
+            gcf_retalkbridge_Main.updateEntries(side,ids,_hx_local_2)
+        settle = _hx_local_3
         target = gcf_retalkbridge_Main.targetSession(side,conf)
         conf1 = Reflect.field(conf,"peer")
         _g = []
@@ -1499,74 +1549,63 @@ class gcf_retalkbridge_Main:
                 Reflect.setField(health,"benched_until",until)
                 Reflect.setField(health,"bench_reason",outcome.detail)
                 def _hx_local_8(entry):
+                    entry.status = "pending"
                     entry.attempts = (entry.attempts - 1)
                 gcf_retalkbridge_Main.updateEntries(side,ids,_hx_local_8)
                 gcf_retalkbridge_Main.log(side,"rate_limited",_hx_AnonObject({'until': until, 'reset_from_output': (outcome.resetAt > 0), 'exit_code': result.code, 'detail': outcome.detail}))
             else:
-                failures = (0 if ((Reflect.field(health,"failures") is None)) else Reflect.field(health,"failures"))
-                failures = (failures + 1)
-                Reflect.setField(health,"failures",failures)
-                x = gcf_retalkbridge_Main.setting("circuit_breaker_failures",3)
-                tmp = None
-                try:
-                    tmp = int(x)
-                except BaseException as _g:
-                    None
-                    tmp = None
-                if (failures >= tmp):
-                    Reflect.setField(health,"circuit_open_until",(gcf_retalkbridge_Main.now() + ((Std.parseFloat(Std.string(gcf_retalkbridge_Main.setting("circuit_open_minutes",60))) * 60))))
-                    Reflect.setField(health,"failures",0)
-                    gcf_retalkbridge_Main.log(side,"circuit_opened",_hx_AnonObject({'until': Reflect.field(health,"circuit_open_until")}))
+                def _hx_local_9(entry):
+                    entry.status = "pending"
+                gcf_retalkbridge_Main.updateEntries(side,ids,_hx_local_9)
+                gcf_retalkbridge_Main.countFailure(side,health)
                 gcf_retalkbridge_Main.log(side,"resume_failed",_hx_AnonObject({'exit_code': result.code, 'detail': outcome.detail}))
         elif (_hx_local_6 == 2):
             if (_g == "ok"):
                 Reflect.setField(health,"failures",0)
                 if ((outcome.sessionId != "") and ((((target.id == "") or ((target.id == outcome.sessionId))) or ((Reflect.field(conf,"resume_target") != "latest"))))):
                     gcf_retalkbridge_Main.writeJson((("null" if dir is None else dir) + "/bridge-session.json"),_hx_AnonObject({'session_id': outcome.sessionId, 'cwd': target.cwd}))
-                noReply = gcf_retalkbridge_Policy.isNoReply(outcome.reply)
-                summary = ("(no reply)" if noReply else (HxOverrides.stringOrNull((("replied: " if mayReply else "reply not sent (hop limit): "))) + HxOverrides.stringOrNull(gcf_retalkbridge_Main.clip(outcome.reply,300))))
-                def _hx_local_10(entry):
-                    entry.status = "answered"
-                    entry.reply_summary = summary
-                gcf_retalkbridge_Main.updateEntries(side,ids,_hx_local_10)
                 gcf_retalkbridge_Main.log(side,"resume_ok",_hx_AnonObject({'session': outcome.sessionId, 'exit_code': result.code, 'reply': gcf_retalkbridge_Main.clip(outcome.reply,500)}))
-                if ((not noReply) and mayReply):
-                    gcf_retalkbridge_Main.send(side,outcome.reply,(top + 1))
-                elif (not noReply):
+                if gcf_retalkbridge_Policy.isNoReply(outcome.reply):
+                    settle("answered","(no reply)")
+                elif (not mayReply):
+                    settle("answered",("reply not sent (hop limit): " + HxOverrides.stringOrNull(gcf_retalkbridge_Main.clip(outcome.reply,300))))
                     gcf_retalkbridge_Main.log(side,"reply_suppressed_hop_limit",_hx_AnonObject({'hop': (top + 1), 'max_hops': maxHops}))
+                elif gcf_retalkbridge_Main.send(side,outcome.reply,(top + 1)):
+                    settle("answered",("replied: " + HxOverrides.stringOrNull(gcf_retalkbridge_Main.clip(outcome.reply,300))))
+                else:
+                    settle("reply_failed",("reply NOT sent (retalk send failed): " + HxOverrides.stringOrNull(gcf_retalkbridge_Main.clip(outcome.reply,300))))
+                    gcf_retalkbridge_Main.log(side,"reply_failed",_hx_AnonObject({'messages': ids}))
+                    gcf_retalkbridge_Main.countFailure(side,health)
             else:
-                failures = (0 if ((Reflect.field(health,"failures") is None)) else Reflect.field(health,"failures"))
-                failures = (failures + 1)
-                Reflect.setField(health,"failures",failures)
-                x = gcf_retalkbridge_Main.setting("circuit_breaker_failures",3)
-                tmp = None
-                try:
-                    tmp = int(x)
-                except BaseException as _g:
-                    None
-                    tmp = None
-                if (failures >= tmp):
-                    Reflect.setField(health,"circuit_open_until",(gcf_retalkbridge_Main.now() + ((Std.parseFloat(Std.string(gcf_retalkbridge_Main.setting("circuit_open_minutes",60))) * 60))))
-                    Reflect.setField(health,"failures",0)
-                    gcf_retalkbridge_Main.log(side,"circuit_opened",_hx_AnonObject({'until': Reflect.field(health,"circuit_open_until")}))
+                def _hx_local_10(entry):
+                    entry.status = "pending"
+                gcf_retalkbridge_Main.updateEntries(side,ids,_hx_local_10)
+                gcf_retalkbridge_Main.countFailure(side,health)
                 gcf_retalkbridge_Main.log(side,"resume_failed",_hx_AnonObject({'exit_code': result.code, 'detail': outcome.detail}))
         else:
-            failures = (0 if ((Reflect.field(health,"failures") is None)) else Reflect.field(health,"failures"))
-            failures = (failures + 1)
-            Reflect.setField(health,"failures",failures)
-            x = gcf_retalkbridge_Main.setting("circuit_breaker_failures",3)
-            tmp = None
-            try:
-                tmp = int(x)
-            except BaseException as _g:
-                None
-                tmp = None
-            if (failures >= tmp):
-                Reflect.setField(health,"circuit_open_until",(gcf_retalkbridge_Main.now() + ((Std.parseFloat(Std.string(gcf_retalkbridge_Main.setting("circuit_open_minutes",60))) * 60))))
-                Reflect.setField(health,"failures",0)
-                gcf_retalkbridge_Main.log(side,"circuit_opened",_hx_AnonObject({'until': Reflect.field(health,"circuit_open_until")}))
+            def _hx_local_11(entry):
+                entry.status = "pending"
+            gcf_retalkbridge_Main.updateEntries(side,ids,_hx_local_11)
+            gcf_retalkbridge_Main.countFailure(side,health)
             gcf_retalkbridge_Main.log(side,"resume_failed",_hx_AnonObject({'exit_code': result.code, 'detail': outcome.detail}))
         gcf_retalkbridge_Main.writeJson((("null" if dir is None else dir) + "/health.json"),health)
+
+    @staticmethod
+    def countFailure(side,health):
+        failures = (0 if ((Reflect.field(health,"failures") is None)) else Reflect.field(health,"failures"))
+        failures = (failures + 1)
+        Reflect.setField(health,"failures",failures)
+        x = gcf_retalkbridge_Main.setting("circuit_breaker_failures",3)
+        tmp = None
+        try:
+            tmp = int(x)
+        except BaseException as _g:
+            None
+            tmp = None
+        if (failures >= tmp):
+            Reflect.setField(health,"circuit_open_until",(gcf_retalkbridge_Main.now() + ((Std.parseFloat(Std.string(gcf_retalkbridge_Main.setting("circuit_open_minutes",60))) * 60))))
+            Reflect.setField(health,"failures",0)
+            gcf_retalkbridge_Main.log(side,"circuit_opened",_hx_AnonObject({'until': Reflect.field(health,"circuit_open_until")}))
 
     @staticmethod
     def clip(text,limit):

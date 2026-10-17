@@ -82,7 +82,8 @@ only for the idle-side watcher.
 | Risk | Guard |
 |---|---|
 | Lost messages | Spool written under a lock before any processing |
-| Duplicates | Message id deduplication in the spool |
+| Duplicates | Message id deduplication in the spool; the watcher claims its batch as `resuming` under the spool lock, so a hook firing during the run does not deliver the same messages (a claim left by a crashed run is released at the next `tick`) |
+| Lost replies | The watcher sends its reply before marking the messages answered; if `retalk send` fails they are marked `reply_failed`, the failure counts towards the circuit breaker, and the unsent reply is shown to the live session at its next prompt |
 | Provider limit | Classified from the CLI output; side benched until the reset time it names, else `default_backoff_minutes`; the message stays queued and the attempt is not counted |
 | Codex already out of quota | Latest `~/.codex/sessions` log's `rate_limits` checked before any model call |
 | Endless retries | `max_attempts_per_message`, then the message is marked `dead` |

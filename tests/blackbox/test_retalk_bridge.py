@@ -34,6 +34,9 @@ if cmd == "receive":
         sys.stdout.write(open(box).read())
         os.remove(box)
 elif cmd == "send":
+    if os.path.exists(os.path.join(fake, "retalk-send.fail")):
+        sys.stderr.write("relay unreachable\n")
+        sys.exit(1)
     mid = uuid.uuid4().hex
     with open(os.path.join(fake, "sent.jsonl"), "a") as out:
         out.write(json.dumps({"from": ident, "peer": opt("--peer"), "text": args[-1], "id": mid}) + "\n")
@@ -47,6 +50,17 @@ name = os.path.basename(sys.argv[0])
 with open(os.path.join(fake, name + "-calls.jsonl"), "a") as log:
     log.write(json.dumps({"argv": sys.argv[1:], "cwd": os.getcwd(),
                           "child": os.environ.get("RETALK_BRIDGE_CHILD")}) + "\n")
+during = os.path.join(fake, name + ".during")
+if os.path.exists(during):
+    # A live session's prompt hook firing while this watcher run is in progress.
+    import subprocess
+    spec = json.load(open(during))
+    env = {k: v for k, v in os.environ.items() if k != "RETALK_BRIDGE_CHILD"}
+    payload = json.dumps({"session_id": "live-1", "cwd": spec["cwd"], "hook_event_name": "UserPromptSubmit"})
+    hook = subprocess.run([sys.executable, spec["bridge"], "hook", "--side", spec["side"]], input=payload, env=env,
+                          capture_output=True, text=True)
+    with open(os.path.join(fake, name + ".during-out"), "w") as out:
+        json.dump({"stdout": hook.stdout, "spool": json.load(open(spec["spool"]))}, out)
 mode_file = os.path.join(fake, name + ".mode")
 mode = open(mode_file).read().strip() if os.path.exists(mode_file) else "ok"
 reply = open(os.path.join(fake, name + ".reply")).read() if os.path.exists(os.path.join(fake, name + ".reply")) else "pong"
@@ -251,6 +265,53 @@ class RetalkBridgeTest(HelperTestCase):
         self.assertEqual(len(self.calls("codex")), 1)
         self.assertIn("circuit_opened", self.events("codex"))
         self.assertIn("skipped_circuit_open", self.events("codex"))
+
+    def test_hook_during_a_watcher_run_skips_the_claimed_batch(self):
+        from support import tool_path
+        spool = self.tmp / "state" / "codex" / "spool.json"
+        (self.fake / "codex.during").write_text(json.dumps(
+            {"bridge": str(tool_path("retalk_bridge")), "side": "codex", "cwd": str(self.live), "spool": str(spool)}))
+        self.deliver("me-codex", "m1", "ping")
+        self.bridge("tick", "--side", "codex")
+        during = json.loads((self.fake / "codex.during-out").read_text())
+        self.assertEqual([(e["id"], e["status"], e["attempts"]) for e in during["spool"]], [("m1", "resuming", 1)])
+        self.assertEqual(during["stdout"], "", "the live hook must not deliver a batch the watcher is answering")
+        self.assertEqual([e["status"] for e in self.spool("codex")], ["answered"])
+        self.assertEqual(len(self.sent()), 1)
+
+    def test_claim_left_by_a_crashed_run_is_released(self):
+        self.deliver("me-codex", "m1", "ping")
+        self.bridge("fetch", "--side", "codex")
+        entries = self.spool("codex")
+        entries[0].update(status="resuming", attempts=1)
+        (self.tmp / "state" / "codex" / "spool.json").write_text(json.dumps(entries))
+        self.bridge("tick", "--side", "codex")
+        self.assertEqual(len(self.calls("codex")), 1)
+        self.assertEqual([(e["status"], e["attempts"]) for e in self.spool("codex")], [("answered", 2)])
+        self.assertIn("stale_claim_released", self.events("codex"))
+
+    def test_failed_run_puts_the_batch_back_to_pending(self):
+        self.config["circuit_breaker_failures"] = 99
+        (self.fake / "codex.mode").write_text("crash")
+        self.deliver("me-codex", "m1", "ping")
+        self.bridge("tick", "--side", "codex")
+        self.assertEqual([(e["status"], e["attempts"]) for e in self.spool("codex")], [("pending", 1)])
+
+    def test_reply_send_failure_is_recorded_and_shown(self):
+        (self.fake / "retalk-send.fail").write_text("")
+        self.deliver("me-codex", "m1", "ping")
+        self.bridge("tick", "--side", "codex")
+        entry = self.spool("codex")[0]
+        self.assertEqual(entry["status"], "reply_failed")
+        self.assertIn("pong", entry["reply_summary"])
+        self.assertEqual(self.health("codex")["failures"], 1)
+        self.assertIn("send_failed", self.events("codex"))
+        self.assertIn("reply_failed", self.events("codex"))
+        # Not retried by the watcher (no second model call) but shown to the live session.
+        self.bridge("tick", "--side", "codex")
+        self.assertEqual(len(self.calls("codex")), 1)
+        context = json.loads(self.hook("codex", "UserPromptSubmit", self.live).stdout)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("reply NOT sent (retalk send failed): pong", context)
 
     def test_message_is_abandoned_after_max_attempts(self):
         self.config["max_attempts_per_message"] = 1
