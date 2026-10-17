@@ -19,7 +19,8 @@ Codex identity) should exchange messages without a human copying them across.
 - **Hooks (live sessions).** On `SessionStart`, `UserPromptSubmit` and `Stop`
   the bridge drains the side's mailbox and hands new messages to the session
   as added context. On `Stop` it asks the agent to continue once so it can
-  answer. Hooks act only in the directories listed in the side's `hook_cwds`.
+  answer, unless the hop limit forbids a reply; such messages are shown at the
+  next prompt. Hooks act only in the directories listed in the side's `hook_cwds`.
 - **Watcher (idle sides, optional).** A systemd user timer runs
   `retalk_bridge.py tick` every minute. When a side has unread mail and no
   limit is in force, it runs that CLI non-interactively (`claude -p --resume`

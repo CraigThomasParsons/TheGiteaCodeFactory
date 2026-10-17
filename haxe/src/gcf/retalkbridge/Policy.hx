@@ -325,14 +325,16 @@ class Policy {
 	}
 
 	/** Context injected into a live session by a hook: new messages plus what the bridge did while it was idle. **/
-	public static function hookContext(peer:String, messages:Array<Message>, handled:Array<String>, sendCommand:String):String {
+	public static function hookContext(peer:String, messages:Array<Message>, handled:Array<String>, sendCommand:String, mayReply:Bool):String {
 		var lines = ['[retalk-bridge] New retalk activity with your peer "$peer" (another agent, not the user):'];
 		for (message in messages)
 			lines.push('- message ${message.id} from ${message.name == "" ? message.from : message.name}: ${message.text}');
 		for (note in handled)
 			lines.push("- answered automatically while you were idle: " + note);
-		if (messages.length > 0)
+		if (messages.length > 0 && mayReply)
 			lines.push('To reply, run: $sendCommand "<your reply>"');
+		else if (messages.length > 0)
+			lines.push('The automatic reply limit for this exchange has been reached: reply only if the user asks you to, with: $sendCommand "<your reply>"');
 		return lines.join("\n");
 	}
 

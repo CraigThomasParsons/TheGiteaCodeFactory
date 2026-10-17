@@ -396,10 +396,27 @@ class StringBuf:
 StringBuf._hx_class = StringBuf
 
 
+class haxe_SysTools:
+    _hx_class_name = "haxe.SysTools"
+    __slots__ = ()
+    _hx_statics = ["quoteUnixArg"]
+
+    @staticmethod
+    def quoteUnixArg(argument):
+        if (argument == ""):
+            return "''"
+        _this = EReg("[^a-zA-Z0-9_@%+=:,./-]","")
+        _this.matchObj = python_lib_Re.search(_this.pattern,argument)
+        if (_this.matchObj is None):
+            return argument
+        return (("'" + HxOverrides.stringOrNull(StringTools.replace(argument,"'","'\"'\"'"))) + "'")
+haxe_SysTools._hx_class = haxe_SysTools
+
+
 class StringTools:
     _hx_class_name = "StringTools"
     __slots__ = ()
-    _hx_statics = ["isSpace", "ltrim", "rtrim", "trim", "lpad"]
+    _hx_statics = ["isSpace", "ltrim", "rtrim", "trim", "lpad", "replace"]
 
     @staticmethod
     def isSpace(s,pos):
@@ -449,6 +466,11 @@ class StringTools:
         s1 = Std.string(s)
         buf.b.write(s1)
         return buf.b.getvalue()
+
+    @staticmethod
+    def replace(s,sub,by):
+        _this = (list(s) if ((sub == "")) else s.split(sub))
+        return by.join([python_Boot.toString1(x1,'') for x1 in _this])
 StringTools._hx_class = StringTools
 
 
@@ -1227,36 +1249,59 @@ class gcf_retalkbridge_Main:
         gcf_retalkbridge_Main.writeJson((HxOverrides.stringOrNull(gcf_retalkbridge_Main.stateDir(side)) + "/session.json"),_hx_AnonObject({'session_id': Reflect.field(event,"session_id"), 'cwd': cwd, 'event': name, 'at': gcf_retalkbridge_Main.now()}))
         if (name == "SessionEnd"):
             return
+        stop = (name == "Stop")
+        if (stop and ((Reflect.field(event,"stop_hook_active") == True))):
+            return
         try:
             gcf_retalkbridge_Main.fetch(side)
         except BaseException as _g:
             None
             e = haxe_Exception.caught(_g).unwrap()
             gcf_retalkbridge_Main.log(side,"fetch_failed",_hx_AnonObject({'detail': Std.string(e)}))
+        x = gcf_retalkbridge_Main.setting("max_hops",2)
+        maxHops = None
+        try:
+            maxHops = int(x)
+        except BaseException as _g:
+            None
+            maxHops = None
         fresh = []
         notes = []
-        def _hx_local_1():
+        def _hx_local_2():
             entries = gcf_retalkbridge_Main.spool(side)
             _g = 0
             while (_g < len(entries)):
                 entry = (entries[_g] if _g >= 0 and _g < len(entries) else None)
                 _g = (_g + 1)
-                if (Reflect.field(entry,"status") == "pending"):
+                deliver = (((Reflect.field(entry,"status") == "pending") and gcf_retalkbridge_Policy.replyAllowed(Reflect.field(entry,"hop"),maxHops)) if stop else ((Reflect.field(entry,"status") == "pending") or ((Reflect.field(entry,"status") == "held"))))
+                if deliver:
                     x = gcf_retalkbridge_Main.toMessage(entry)
                     fresh.append(x)
                     Reflect.setField(entry,"status","delivered")
                     Reflect.setField(entry,"delivered_by",("hook:" + ("null" if name is None else name)))
-                elif ((Reflect.field(entry,"status") == "answered") and ((Reflect.field(entry,"noted") != True))):
-                    x1 = ((Std.string(Reflect.field(entry,"id")) + ": ") + Std.string(Reflect.field(entry,"reply_summary")))
-                    notes.append(x1)
-                    Reflect.setField(entry,"noted",True)
+            if ((not stop) or ((len(fresh) > 0))):
+                _g = 0
+                while (_g < len(entries)):
+                    entry = (entries[_g] if _g >= 0 and _g < len(entries) else None)
+                    _g = (_g + 1)
+                    if ((Reflect.field(entry,"status") == "answered") and ((Reflect.field(entry,"noted") != True))):
+                        x = ((Std.string(Reflect.field(entry,"id")) + ": ") + Std.string(Reflect.field(entry,"reply_summary")))
+                        notes.append(x)
+                        Reflect.setField(entry,"noted",True)
             if ((len(fresh) > 0) or ((len(notes) > 0))):
                 gcf_retalkbridge_Main.saveSpool(side,entries)
-        gcf_retalkbridge_Main.withLock((HxOverrides.stringOrNull(gcf_retalkbridge_Main.stateDir(side)) + "/spool.lock"),True,_hx_local_1)
-        if ((len(fresh) == 0) and (((len(notes) == 0) or ((name == "Stop"))))):
+        gcf_retalkbridge_Main.withLock((HxOverrides.stringOrNull(gcf_retalkbridge_Main.stateDir(side)) + "/spool.lock"),True,_hx_local_2)
+        if ((len(fresh) == 0) and ((len(notes) == 0))):
             return
-        sendCommand = ((("python3 " + HxOverrides.stringOrNull(gcf_retalkbridge_Main.scriptPath())) + " send --side ") + ("null" if side is None else side))
-        context = gcf_retalkbridge_Policy.hookContext(conf.peer,fresh,notes,sendCommand)
+        top = 0
+        _g = 0
+        while (_g < len(fresh)):
+            message = (fresh[_g] if _g >= 0 and _g < len(fresh) else None)
+            _g = (_g + 1)
+            if (message.hop > top):
+                top = message.hop
+        sendCommand = (((((("python3 " + HxOverrides.stringOrNull(haxe_SysTools.quoteUnixArg(gcf_retalkbridge_Main.scriptPath()))) + " send --side ") + ("null" if side is None else side)) + " --hop ") + Std.string(((top + 1)))) + " --")
+        context = gcf_retalkbridge_Policy.hookContext(conf.peer,fresh,notes,sendCommand,gcf_retalkbridge_Policy.replyAllowed(top,maxHops))
         side1 = side
         name1 = name
         _g = []
@@ -1267,7 +1312,7 @@ class gcf_retalkbridge_Main:
             x = m.id
             _g.append(x)
         gcf_retalkbridge_Main.log(side1,"hook_delivered",_hx_AnonObject({'hook': name1, 'messages': _g, 'notes': len(notes)}))
-        if (name == "Stop"):
+        if stop:
             _hx_str = Std.string(haxe_format_JsonPrinter.print(_hx_AnonObject({'decision': "block", 'reason': context}),None,None))
             python_Lib.printString((("" + ("null" if _hx_str is None else _hx_str)) + HxOverrides.stringOrNull(python_Lib.lineEnd)))
         else:
@@ -2000,7 +2045,7 @@ class gcf_retalkbridge_Policy:
         return "\n".join([python_Boot.toString1(x1,'') for x1 in lines])
 
     @staticmethod
-    def hookContext(peer,messages,handled,sendCommand):
+    def hookContext(peer,messages,handled,sendCommand,mayReply):
         lines = [(("[retalk-bridge] New retalk activity with your peer \"" + ("null" if peer is None else peer)) + "\" (another agent, not the user):")]
         _g = 0
         while (_g < len(messages)):
@@ -2013,8 +2058,10 @@ class gcf_retalkbridge_Policy:
             note = (handled[_g] if _g >= 0 and _g < len(handled) else None)
             _g = (_g + 1)
             lines.append(("- answered automatically while you were idle: " + ("null" if note is None else note)))
-        if (len(messages) > 0):
+        if ((len(messages) > 0) and mayReply):
             lines.append((("To reply, run: " + ("null" if sendCommand is None else sendCommand)) + " \"<your reply>\""))
+        elif (len(messages) > 0):
+            lines.append((("The automatic reply limit for this exchange has been reached: reply only if the user asks you to, with: " + ("null" if sendCommand is None else sendCommand)) + " \"<your reply>\""))
         return "\n".join([python_Boot.toString1(x1,'') for x1 in lines])
 
     @staticmethod

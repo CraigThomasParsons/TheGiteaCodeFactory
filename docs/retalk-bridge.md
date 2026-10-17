@@ -40,10 +40,15 @@ peer sends ──► relay ──► retalk receive (destructive) ──► spoo
    It passes `--save`, so `retalk history` also has both directions.
 2. **Hooks.** For a session whose working directory is listed in the side's
    `hook_cwds`, `SessionStart` and `UserPromptSubmit` inject unread messages as
-   additional context, and `Stop` returns `{"decision": "block"}` once so the
-   agent continues and can answer. Both CLIs use the same hook JSON shapes.
-   Outside those directories the hook does nothing, so unrelated automated
-   sessions never consume the mailbox.
+   additional context, and `Stop` returns `{"decision": "block"}` so the
+   agent continues and can answer. `Stop` blocks at most once per turn (it does
+   nothing when the event says `stop_hook_active`) and only for messages the
+   agent may still answer under `max_hops`; messages at or past that limit,
+   including those the watcher held, are shown at the next `SessionStart` or
+   `UserPromptSubmit` instead. The reply command offered to the agent carries
+   `--hop`, so replies from a live session count towards the same limit.
+   Both CLIs use the same hook JSON shapes. Outside those directories the hook
+   does nothing, so unrelated automated sessions never consume the mailbox.
 3. **Watcher.** `retalk-bridge.timer` runs `retalk_bridge.py tick` every
    minute. For a side with unread mail it runs, read-only:
    - Claude: `claude -p [extra_args] --output-format json [--resume ID] PROMPT`
@@ -83,7 +88,7 @@ only for the idle-side watcher.
 | Endless retries | `max_attempts_per_message`, then the message is marked `dead` |
 | Repeated failures | Circuit breaker: `circuit_breaker_failures` failures open it for `circuit_open_minutes` |
 | Spend | `max_resumes_per_hour` per side; one resume per side at a time |
-| Agents answering each other forever | Hop counter: a reply is sent only while its hop ≤ `max_hops`; a message past the limit is held for a person |
+| Agents answering each other forever | Hop counter: a reply is sent only while its hop ≤ `max_hops`; a message past the limit is held and shown to a live session at its next prompt, for a person to decide |
 | Prompt injection | Messages are labelled as coming from another agent, not the user; watcher runs are read-only (`-s read-only`, `--disallowedTools` in the example config) |
 
 Rate-limit text the bridge recognises (observed and documented forms): Claude

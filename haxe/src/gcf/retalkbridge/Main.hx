@@ -402,30 +402,44 @@ class Main {
 		});
 		if (name == "SessionEnd")
 			return;
+		var stop = name == "Stop";
+		if (stop && event.stop_hook_active == true)
+			return; // this turn already continued because of a Stop hook: block at most once
 		try fetch(side) catch (e:Dynamic) log(side, "fetch_failed", {detail: Std.string(e)});
+		var maxHops = Std.int(setting("max_hops", 2));
 		var fresh:Array<Message> = [];
 		var notes:Array<String> = [];
 		withLock(stateDir(side) + "/spool.lock", true, function() {
 			var entries = spool(side);
 			for (entry in entries) {
-				if (entry.status == "pending") {
+				// Stop keeps the agent going only for messages it may still answer; the rest wait for the next prompt.
+				var deliver = if (stop) entry.status == "pending" && Policy.replyAllowed(entry.hop, maxHops) else entry.status == "pending"
+					|| entry.status == "held";
+				if (deliver) {
 					fresh.push(toMessage(entry));
 					entry.status = "delivered";
 					entry.delivered_by = "hook:" + name;
-				} else if (entry.status == "answered" && entry.noted != true) {
-					notes.push(entry.id + ": " + entry.reply_summary);
-					entry.noted = true;
 				}
 			}
+			if (!stop || fresh.length > 0)
+				for (entry in entries)
+					if (entry.status == "answered" && entry.noted != true) {
+						notes.push(entry.id + ": " + entry.reply_summary);
+						entry.noted = true;
+					}
 			if (fresh.length > 0 || notes.length > 0)
 				saveSpool(side, entries);
 		});
-		if (fresh.length == 0 && (notes.length == 0 || name == "Stop"))
+		if (fresh.length == 0 && notes.length == 0)
 			return;
-		var sendCommand = 'python3 ${scriptPath()} send --side $side';
-		var context = Policy.hookContext(conf.peer, fresh, notes, sendCommand);
+		var top = 0;
+		for (message in fresh)
+			if (message.hop > top)
+				top = message.hop;
+		var sendCommand = 'python3 ${haxe.SysTools.quoteUnixArg(scriptPath())} send --side $side --hop ${top + 1} --';
+		var context = Policy.hookContext(conf.peer, fresh, notes, sendCommand, Policy.replyAllowed(top, maxHops));
 		log(side, "hook_delivered", {hook: name, messages: [for (m in fresh) m.id], notes: notes.length});
-		if (name == "Stop") {
+		if (stop) {
 			Sys.println(Json.stringify({decision: "block", reason: context}));
 		} else {
 			Sys.println(Json.stringify({hookSpecificOutput: {hookEventName: name, additionalContext: context}}));
@@ -454,7 +468,7 @@ class Main {
 				if (entry.status != "pending")
 					continue;
 				if (!Policy.shouldResume(entry.hop, maxHops)) {
-					entry.status = "held"; // past the hop limit: left for a live session's hook
+					entry.status = "held"; // past the hop limit: shown to a live session at its next prompt
 					changed = true;
 					log(side, "hop_limit_held", {id: entry.id, hop: entry.hop});
 				} else if (entry.attempts >= maxAttempts) {

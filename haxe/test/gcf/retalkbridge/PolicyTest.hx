@@ -93,7 +93,10 @@ class PolicyTest extends utest.Test {
 		var messages = [{id: "m1", from: "f", name: "codex", text: "pong", hop: 1}];
 		Assert.isTrue(Policy.resumePrompt("codex", messages, true).indexOf("sent back to the peer verbatim") > 0);
 		Assert.isTrue(Policy.resumePrompt("codex", messages, false).indexOf("nothing you write now is sent") > 0);
-		Assert.isTrue(Policy.hookContext("codex", messages, [], "send-cmd").indexOf("To reply, run: send-cmd") > 0);
+		Assert.isTrue(Policy.hookContext("codex", messages, [], "send-cmd", true).indexOf("To reply, run: send-cmd") > 0);
+		var limited = Policy.hookContext("codex", messages, [], "send-cmd", false);
+		Assert.isTrue(limited.indexOf("reply limit for this exchange has been reached") > 0);
+		Assert.equals(-1, limited.indexOf("To reply, run"));
 		Assert.isTrue(Policy.isNoReply(" NO_REPLY "));
 		Assert.isTrue(Policy.isNoReply(""));
 		Assert.isFalse(Policy.isNoReply("pong"));

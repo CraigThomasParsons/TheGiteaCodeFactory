@@ -327,7 +327,43 @@ class RetalkBridgeTest(HelperTestCase):
         out = json.loads(result.stdout)
         self.assertEqual(out["decision"], "block")
         self.assertIn("quick question", out["reason"])
+        # The continued turn ends with stop_hook_active: no second block, and m2 waits.
+        self.deliver("me-codex", "m2", "second question")
         self.assertEqual(self.hook("codex", "Stop", self.live, stop_hook_active=True).stdout, "")
+        self.bridge("fetch", "--side", "codex")
+        self.assertEqual([(e["id"], e["status"]) for e in self.spool("codex")], [("m1", "delivered"), ("m2", "pending")])
+        out = json.loads(self.hook("codex", "UserPromptSubmit", self.live).stdout)
+        self.assertIn("second question", out["hookSpecificOutput"]["additionalContext"])
+
+    def test_hook_reply_command_carries_the_next_hop(self):
+        self.deliver("me-claude", "m1", "[retalk-bridge hop=1] pong")
+        context = json.loads(self.hook("claude", "UserPromptSubmit", self.live).stdout)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("send --side claude --hop 2 --", context)
+        self.assertIn("To reply, run:", context)
+
+    def test_stop_hook_does_not_block_at_the_reply_limit(self):
+        self.config["max_hops"] = 1
+        self.deliver("me-codex", "m1", "[retalk-bridge hop=1] pong")
+        self.assertEqual(self.hook("codex", "Stop", self.live, stop_hook_active=False).stdout, "")
+        self.assertEqual(self.spool("codex")[0]["status"], "pending")
+        context = json.loads(self.hook("codex", "UserPromptSubmit", self.live).stdout)["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("pong", context)
+        self.assertIn("reply limit for this exchange has been reached", context)
+        self.assertIn("--hop 2 --", context)
+
+    def test_held_message_is_shown_at_next_prompt_but_never_blocks_stop(self):
+        self.config["max_hops"] = 1
+        self.deliver("me-claude", "m1", "[retalk-bridge hop=2] again")
+        self.bridge("tick", "--side", "claude")
+        self.assertEqual(self.spool("claude")[0]["status"], "held")
+        self.assertEqual(self.hook("claude", "Stop", self.live, stop_hook_active=False).stdout, "")
+        self.assertEqual(self.spool("claude")[0]["status"], "held")
+        out = json.loads(self.hook("claude", "SessionStart", self.live).stdout)
+        context = out["hookSpecificOutput"]["additionalContext"]
+        self.assertIn("again", context)
+        self.assertIn("reply limit for this exchange has been reached", context)
+        self.assertEqual(self.spool("claude")[0]["status"], "delivered")
+        self.assertEqual(self.calls("claude"), [])
 
     def test_hook_outside_allowed_dirs_does_nothing(self):
         self.deliver("me-claude", "m1", "hello")
@@ -347,6 +383,8 @@ class RetalkBridgeTest(HelperTestCase):
     def test_watcher_answer_is_noted_in_next_live_prompt(self):
         self.deliver("me-codex", "m1", "ping")
         self.bridge("tick", "--side", "codex")
+        # A turn ending with nothing new keeps the note for the next prompt.
+        self.assertEqual(self.hook("codex", "Stop", self.live, stop_hook_active=False).stdout, "")
         out = json.loads(self.hook("codex", "UserPromptSubmit", self.live).stdout)
         self.assertIn("answered automatically while you were idle", out["hookSpecificOutput"]["additionalContext"])
 
