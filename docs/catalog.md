@@ -33,8 +33,9 @@ not recognise from the directory it was pointed at. See
 | [moonlighter](../skills/moonlighter/SKILL.md) | Coordinator intake/claims and job lifecycle boundaries |
 | [coordinate-cross-project-work](../skills/coordinate-cross-project-work/SKILL.md) | Dependency packets and evidence across repositories |
 | [release-preparation](../skills/release-preparation/SKILL.md) | Completed cohort → explicit GitHub refs and draft release evidence |
+| [retalk-bridge](../skills/retalk-bridge/SKILL.md) | Claude Code ↔ Codex messages over retalk via hooks and an idle-side watcher ([guide](retalk-bridge.md)) |
 
-The BDD, parity, coach, Moonlighter and release skills were written for this kit.
+The BDD, parity, coach, Moonlighter, release and retalk-bridge skills were written for this kit.
 The TDD, review and phase skills and scripts were adapted from the author's working
 agent setup; [provenance.json](provenance.json) records their origins. Only skills
 that belong to the delivery and testing workflow are included.
@@ -59,6 +60,8 @@ that belong to the delivery and testing workflow are included.
 | `skills/slice-pipeline/scripts/pipeline.py` | `start/run/status/phase`; fresh-context Codex driver and receipt schema | Python, Git, tmux, authenticated Codex |
 | `skills/tmux-pipeline/scripts/verify-freshness.sh` | Worktree and logs; timestamp staleness aid | Bash, Git, stat/date |
 | `skills/supervise-agent-pipeline/scripts/classify_execution.py` | Observation JSON on stdin → classified worker state on stdout | Python |
+| `skills/retalk-bridge/scripts/retalk_bridge.py` | `hook/tick/fetch/send/status/install-hooks`; spools retalk mail, injects it via hooks, resumes an idle CLI with backoff (generated from Haxe) | Python, retalk, Claude Code and/or Codex |
+| `skills/retalk-bridge/scripts/install.sh` | Identities, peers, `--hook-cwd`, `--watcher`; backs up and merges CLI hook config; `uninstall.sh` reverses | Bash, Python, systemd user session for the watcher |
 | `skills/pr-review-resolve-loop/scripts/gitea_merge.py` | Explicit repo/PR/method/receipt; read-only unless `--execute` | Python, Gitea token, private receipts |
 
 All factory-level paths above are relative to this checkout. Installed phase

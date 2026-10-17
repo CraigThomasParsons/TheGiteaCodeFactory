@@ -43,6 +43,7 @@ TOOLS = {
     "install_skills": "scripts/install-skills.py",
     "parity": "scripts/parity.py",
     "pipeline": "skills/slice-pipeline/scripts/pipeline.py",
+    "retalk_bridge": "skills/retalk-bridge/scripts/retalk_bridge.py",
     "reviewer": "scripts/reviewer/ai_pr_reviewer.js",
 }
 

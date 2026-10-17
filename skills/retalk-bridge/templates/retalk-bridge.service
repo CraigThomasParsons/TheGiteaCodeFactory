@@ -1,0 +1,10 @@
+[Unit]
+Description=retalk bridge watcher pass (wake an idle agent for new retalk mail)
+Documentation=file://%h/.local/share/retalk-bridge/SKILL.md
+
+[Service]
+Type=oneshot
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env python3 %h/.local/share/retalk-bridge/retalk_bridge.py tick
+TimeoutStartSec=20min
+Nice=10

@@ -251,7 +251,7 @@ bash scripts/check.sh
 | Path | Contents |
 |---|---|
 | [docs/](docs/) | The guide |
-| [skills/](skills/) | 19 agent skills, some with helper scripts and tests |
+| [skills/](skills/) | 20 agent skills, some with helper scripts and tests |
 | [scripts/](scripts/) | Bootstrap, checks, skill installer, coach, parity comparator, CI reviewer, Haxe install/build/check |
 | [haxe/](haxe/) | Haxe source for the helper scripts, build files, utest suites and pinned toolchain ([Haxe setup](docs/haxe-setup.md)) |
 | [templates/](templates/) | Project config, coach inputs, release manifest, and the Gitea Actions workflows: smoke test, PR validation, advisory AI review |
