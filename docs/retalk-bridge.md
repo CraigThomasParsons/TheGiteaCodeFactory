@@ -114,11 +114,15 @@ bash skills/retalk-bridge/scripts/uninstall.sh            # keeps config and spo
 bash skills/retalk-bridge/scripts/uninstall.sh --purge    # deletes them too
 ```
 
+`--purge` deletes the state directory only when the config uses the default
+`~/.local/state/retalk-bridge`; a custom `state_dir` is left for you to remove.
+
 Names and paths above are examples. The installer copies the helper to
 `~/.local/share/retalk-bridge/`, writes `~/.config/retalk-bridge/config.json`
 (from [the example](../skills/retalk-bridge/templates/config.example.json)) if
 absent, backs up `~/.claude/settings.json`, `~/.codex/config.toml` and
-`~/.codex/hooks.json` as `<file>.bak-retalk-bridge-<timestamp>`, merges its hook
+`~/.codex/hooks.json` as `<file>.bak-retalk-bridge-<timestamp>` (a numeric
+suffix is added rather than overwrite an earlier backup), merges its hook
 entries (it adds Codex hooks to `hooks.json` and does not edit `config.toml`),
 and records everything in `~/.local/share/retalk-bridge/install-manifest.txt`.
 Re-running replaces its entries instead of duplicating them. Use `--dry-run`

@@ -713,8 +713,6 @@ class Main {
 
 	// ---------------------------------------------------------------- install
 
-	static inline var MARKER = "retalk_bridge.py hook";
-
 	/** Merge (or remove) the bridge's hook entries; every other hook is kept as it was. **/
 	static function installHooks(options:Map<String, String>, add:Bool):Void {
 		var command = options.get("command");
@@ -778,8 +776,9 @@ class Main {
 
 	static function isOurs(group:Dynamic):Bool {
 		var handlers:Array<Dynamic> = group == null || group.hooks == null ? [] : group.hooks;
+		var marker = ~/retalk_bridge\.py['"]? hook\b/;
 		for (handler in handlers)
-			if (handler.command != null && Std.string(handler.command).indexOf(MARKER) >= 0)
+			if (handler.command != null && marker.match(Std.string(handler.command)))
 				return true;
 		return false;
 	}

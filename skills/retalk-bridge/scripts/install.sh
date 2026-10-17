@@ -73,10 +73,16 @@ run() {
 }
 
 backup() {
-    local file="$1"
+    local file="$1" target n=1
     if [[ -e "$file" ]]; then
-        run cp -p -- "$file" "$file.bak-retalk-bridge-$stamp"
-        [[ "$dry_run" == 1 ]] || echo "backup $file.bak-retalk-bridge-$stamp" >> "$manifest"
+        target="$file.bak-retalk-bridge-$stamp"
+        # Never overwrite an earlier backup, even from a run in the same second.
+        while [[ -e "$target" ]]; do
+            target="$file.bak-retalk-bridge-$stamp-$n"
+            n=$((n + 1))
+        done
+        run cp -p -- "$file" "$target"
+        [[ "$dry_run" == 1 ]] || echo "backup $target" >> "$manifest"
     fi
 }
 
@@ -111,9 +117,17 @@ fi
 backup "$claude_settings"
 backup "$codex_home/config.toml"
 backup "$codex_home/hooks.json"
+codex_hooks_existed=0
+[[ -e "$codex_home/hooks.json" ]] && codex_hooks_existed=1
 run python3 "$share/retalk_bridge.py" install-hooks --claude-settings "$claude_settings" \
-    --codex-hooks "$codex_home/hooks.json" --command "python3 $share/retalk_bridge.py"
-[[ "$dry_run" == 1 ]] || printf 'merged %s\nmerged %s\n' "$claude_settings" "$codex_home/hooks.json" >> "$manifest"
+    --codex-hooks "$codex_home/hooks.json" --command "python3 $(printf '%q' "$share/retalk_bridge.py")"
+if [[ "$dry_run" != 1 ]]; then
+    printf 'merged %s\nmerged %s\n' "$claude_settings" "$codex_home/hooks.json" >> "$manifest"
+    # uninstall.sh deletes hooks.json only when this line shows the install created it.
+    if [[ "$codex_hooks_existed" == 0 ]]; then
+        echo "created $codex_home/hooks.json" >> "$manifest"
+    fi
+fi
 
 if [[ "$watcher" == 1 ]]; then
     run mkdir -p "$units"

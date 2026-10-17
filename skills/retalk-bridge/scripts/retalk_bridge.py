@@ -704,7 +704,7 @@ gcf_retalkbridge_Failure._hx_class = gcf_retalkbridge_Failure
 class gcf_retalkbridge_Main:
     _hx_class_name = "gcf.retalkbridge.Main"
     __slots__ = ()
-    _hx_statics = ["config", "configPath", "main", "USAGE", "usage", "parseOptions", "home", "expand", "loadConfig", "setting", "sideNames", "sideConfig", "requireSide", "stateDir", "readJson", "writeJson", "now", "stamp", "log", "withLock", "run", "spool", "saveSpool", "fetch", "readInbox", "firstLine", "toMessage", "send", "hookAllowed", "hook", "scriptPath", "tick", "runnable", "claim", "targetSession", "resume", "countFailure", "clip", "updateEntries", "codexExhaustedUntil", "status", "MARKER", "installHooks", "mergeHookFile", "isOurs"]
+    _hx_statics = ["config", "configPath", "main", "USAGE", "usage", "parseOptions", "home", "expand", "loadConfig", "setting", "sideNames", "sideConfig", "requireSide", "stateDir", "readJson", "writeJson", "now", "stamp", "log", "withLock", "run", "spool", "saveSpool", "fetch", "readInbox", "firstLine", "toMessage", "send", "hookAllowed", "hook", "scriptPath", "tick", "runnable", "claim", "targetSession", "resume", "countFailure", "clip", "updateEntries", "codexExhaustedUntil", "status", "installHooks", "mergeHookFile", "isOurs"]
     config = None
     configPath = None
 
@@ -1740,15 +1740,16 @@ class gcf_retalkbridge_Main:
     @staticmethod
     def isOurs(group):
         handlers = ([] if (((group is None) or ((Reflect.field(group,"hooks") is None)))) else Reflect.field(group,"hooks"))
+        marker = EReg("retalk_bridge\\.py['\"]? hook\\b","")
         _g = 0
         while (_g < len(handlers)):
             handler = (handlers[_g] if _g >= 0 and _g < len(handlers) else None)
             _g = (_g + 1)
             tmp = None
             if (Reflect.field(handler,"command") is not None):
-                _this = Std.string(Reflect.field(handler,"command"))
-                startIndex = None
-                tmp = (((_this.find("retalk_bridge.py hook") if ((startIndex is None)) else HxString.indexOfImpl(_this,"retalk_bridge.py hook",startIndex))) >= 0)
+                s = Std.string(Reflect.field(handler,"command"))
+                marker.matchObj = python_lib_Re.search(marker.pattern,s)
+                tmp = (marker.matchObj is not None)
             else:
                 tmp = False
             if tmp:
@@ -4300,7 +4301,6 @@ def _retalk_bridge_codex_snapshot(root):
     return None
 
 gcf_retalkbridge_Main.USAGE = (((((((("usage: retalk_bridge.py {hook|tick|fetch|send|status|install-hooks|uninstall-hooks} [--side SIDE] ...\n" + "  hook --side S        lifecycle hook for Claude Code / Codex (event JSON on stdin)\n") + "  tick [--side S]      watcher pass: fetch mail, wake an idle side, send its reply\n") + "  fetch --side S       fetch new mail into the local spool\n") + "  send --side S [--hop N] [--] TEXT\n") + "                       send TEXT to the side's peer (put -- before a TEXT starting with -)\n") + "  status               bridge state as JSON (no message text)\n") + "  install-hooks|uninstall-hooks --claude-settings FILE --codex-hooks FILE --command CMD\n") + "config: $RETALK_BRIDGE_CONFIG or ~/.config/retalk-bridge/config.json")
-gcf_retalkbridge_Main.MARKER = "retalk_bridge.py hook"
 gcf_retalkbridge_Policy.HOP_PREFIX = "[retalk-bridge hop="
 gcf_retalkbridge_Policy.NO_REPLY = "NO_REPLY"
 python_Boot.keywords = set(["and", "del", "from", "not", "with", "as", "elif", "global", "or", "yield", "assert", "else", "if", "pass", "None", "break", "except", "import", "raise", "True", "class", "exec", "in", "return", "False", "continue", "finally", "is", "try", "def", "for", "lambda", "while"])

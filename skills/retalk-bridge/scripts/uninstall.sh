@@ -3,10 +3,11 @@
 #
 # Stops and removes the systemd user timer and service, removes only the
 # bridge's hook entries from the Claude Code settings and ~/.codex/hooks.json
-# (deleting hooks.json if nothing else is left in it) and removes
-# ~/.local/share/retalk-bridge/. The config and the state directory (which
-# holds received message text) are kept unless --purge is given. Backups made
-# by install.sh are never deleted.
+# (deleting hooks.json if install.sh created it and nothing else is left in it)
+# and removes ~/.local/share/retalk-bridge/. The config and the state directory
+# (which holds received message text) are kept unless --purge is given; --purge
+# deletes the state directory only when it is the default
+# ~/.local/state/retalk-bridge. Backups made by install.sh are never deleted.
 #
 # Usage: skills/retalk-bridge/scripts/uninstall.sh [--purge] [--dry-run]
 # Environment: CLAUDE_SETTINGS, CODEX_HOME, RETALK_BRIDGE_CONFIG (as install.sh).
@@ -46,12 +47,19 @@ args=()
 if [[ ${#args[@]} -gt 0 ]]; then
     run python3 "$bridge" uninstall-hooks "${args[@]}"
 fi
-if [[ -f "$codex_home/hooks.json" && "$(tr -d ' \n' < "$codex_home/hooks.json")" == "{}" ]]; then
+if [[ -f "$codex_home/hooks.json" && "$(tr -d ' \n' < "$codex_home/hooks.json")" == "{}" ]] \
+    && grep -qxF "created $codex_home/hooks.json" "$share/install-manifest.txt" 2>/dev/null; then
     run rm -f "$codex_home/hooks.json"
 fi
 if [[ "$purge" == 1 ]]; then
-    state="$(python3 -c 'import json,os,sys; c=json.load(open(sys.argv[1])); print(os.path.expanduser(c.get("state_dir","~/.local/state/retalk-bridge")))' "$config" 2>/dev/null || echo "$HOME/.local/state/retalk-bridge")"
-    run rm -rf "$state" "$config"
+    default_state="$HOME/.local/state/retalk-bridge"
+    state="$(python3 -c 'import json,os,sys; c=json.load(open(sys.argv[1])); print(os.path.abspath(os.path.expanduser(c.get("state_dir","~/.local/state/retalk-bridge"))))' "$config" 2>/dev/null || echo "$default_state")"
+    if [[ "$state" == "$default_state" ]]; then
+        run rm -rf "$state"
+    else
+        echo "uninstall.sh: not deleting state_dir $state (only the default $default_state is purged); remove it yourself" >&2
+    fi
+    run rm -f "$config"
 fi
 run rm -rf "$share"
 echo "retalk bridge removed. Backups (*.bak-retalk-bridge-*) were kept."

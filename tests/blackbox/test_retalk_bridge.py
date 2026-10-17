@@ -530,7 +530,7 @@ class InstallScriptTest(HelperTestCase):
         self.assertEqual(second.returncode, 0, second.stderr)
         self.assertIn("keeping existing", second.stdout)
         backups = sorted(p.name for p in claude.parent.iterdir() if ".bak-retalk-bridge-" in p.name)
-        self.assertGreaterEqual(len(backups), 1)
+        self.assertEqual(len(backups), 2, "a second run, even in the same second, must not overwrite the first backup")
         self.assertTrue(any(".bak-retalk-bridge-" in p.name for p in (self.home / ".codex").iterdir()))
         self.assertEqual((self.home / ".codex" / "config.toml").read_text(), 'model = "x"\n')
         merged = json.loads(claude.read_text())
@@ -549,6 +549,49 @@ class InstallScriptTest(HelperTestCase):
         self.assertFalse((self.home / ".codex" / "hooks.json").exists())
         self.assertFalse((self.home / ".local" / "share" / "retalk-bridge").exists())
         self.assertTrue((self.home / ".config" / "retalk-bridge" / "config.json").exists())
+
+    ARGS = ["--claude-identity", "~/.retalk/a", "--claude-peer", "a-codex", "--codex-identity", "~/.retalk/b", "--codex-peer", "b-claude"]
+
+    def test_uninstall_keeps_an_empty_hooks_json_it_did_not_create(self):
+        (self.home / ".codex").mkdir()
+        hooks = self.home / ".codex" / "hooks.json"
+        hooks.write_text("{}\n")
+        self.assertEqual(self.script("install.sh", *self.ARGS).returncode, 0)
+        gone = self.script("uninstall.sh")
+        self.assertEqual(gone.returncode, 0, gone.stderr)
+        self.assertEqual(json.loads(hooks.read_text()), {})
+
+    def test_purge_only_deletes_the_default_state_dir(self):
+        self.assertEqual(self.script("install.sh", *self.ARGS).returncode, 0)
+        config_path = self.home / ".config" / "retalk-bridge" / "config.json"
+        custom = self.tmp / "keep-me"
+        custom.mkdir()
+        (custom / "precious.txt").write_text("x")
+        config = json.loads(config_path.read_text())
+        config_path.write_text(json.dumps({**config, "state_dir": str(custom)}))
+        gone = self.script("uninstall.sh", "--purge")
+        self.assertEqual(gone.returncode, 0, gone.stderr)
+        self.assertIn("not deleting state_dir", gone.stderr)
+        self.assertTrue((custom / "precious.txt").exists())
+        self.assertFalse(config_path.exists())
+        default = self.home / ".local" / "state" / "retalk-bridge"
+        (default / "claude").mkdir(parents=True)
+        self.assertEqual(self.script("install.sh", *self.ARGS).returncode, 0)
+        self.assertEqual(self.script("uninstall.sh", "--purge").returncode, 0)
+        self.assertFalse(default.exists())
+
+    def test_hook_command_survives_a_home_with_spaces(self):
+        import subprocess
+        self.home = self.tmp / "home with space"
+        self.home.mkdir()
+        first = self.script("install.sh", *self.ARGS)
+        self.assertEqual(first.returncode, 0, first.stderr)
+        settings = json.loads((self.home / ".claude" / "settings.json").read_text())
+        command = settings["hooks"]["SessionStart"][0]["hooks"][0]["command"]
+        hook = subprocess.run(["sh", "-c", command], input="{}", env=base_env(self.home), capture_output=True, text=True, timeout=60)
+        self.assertEqual(hook.returncode, 0, hook.stderr)
+        self.assertEqual(self.script("uninstall.sh").returncode, 0)
+        self.assertNotIn("hooks", json.loads((self.home / ".claude" / "settings.json").read_text()))
 
 
 if __name__ == "__main__":
