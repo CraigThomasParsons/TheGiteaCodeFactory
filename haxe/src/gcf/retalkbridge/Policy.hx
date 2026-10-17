@@ -32,6 +32,15 @@ class Policy {
 	public static inline var HOP_PREFIX = "[retalk-bridge hop=";
 	public static inline var NO_REPLY = "NO_REPLY";
 
+	/**
+		Parse JSON with Haxe's portable parser. On the Python target the native
+		`haxe.Json.parse` keeps a key named after a Python keyword (such as
+		retalk's `from`) under a name that `Reflect.field` cannot reach.
+	**/
+	public static function parseJson(text:String):Dynamic {
+		return haxe.format.JsonParser.parse(text);
+	}
+
 	/** Chat messages in `retalk receive` output; contact cards, group leaves and junk lines are skipped. **/
 	public static function parseReceive(output:String):Array<Message> {
 		var messages:Array<Message> = [];
@@ -39,7 +48,7 @@ class Policy {
 			var line = StringTools.trim(raw);
 			if (line == "" || line.charAt(0) != "{")
 				continue;
-			var record:Dynamic = try haxe.Json.parse(line) catch (e:Dynamic) null;
+			var record:Dynamic = try parseJson(line) catch (e:Dynamic) null;
 			if (record == null || record.kind != null)
 				continue;
 			var id:Null<String> = record.id;
@@ -55,6 +64,41 @@ class Policy {
 			});
 		}
 		return messages;
+	}
+
+	/**
+		Chat messages from an inbox file that another receiver writes (one JSON
+		record per line, the `retalk receive` shape plus an ISO-8601 UTC `ts`,
+		as the agent-talk follower writes it). Keeps records whose `name` or
+		`from` is one of `senders`, and, when `since` is not empty, whose `ts`
+		is at or after it (both in the same `YYYY-MM-DDTHH:MM:SSZ` form).
+	**/
+	public static function parseInbox(output:String, senders:Array<String>, since:String):Array<Message> {
+		var kept:Array<Message> = [];
+		var lines = output.split("\n");
+		var records:Array<Dynamic> = [];
+		for (raw in lines) {
+			var line = StringTools.trim(raw);
+			if (line.charAt(0) != "{")
+				continue;
+			var record:Dynamic = try parseJson(line) catch (e:Dynamic) null;
+			if (record != null)
+				records.push(record);
+		}
+		var index = 0;
+		for (message in parseReceive(output)) {
+			// parseReceive keeps the same records in the same order, minus non-chat ones
+			while (index < records.length && records[index].id != message.id)
+				index++;
+			var record:Dynamic = index < records.length ? records[index] : null;
+			var ts:String = record == null || record.ts == null ? "" : Std.string(record.ts);
+			if (senders.indexOf(message.name) < 0 && senders.indexOf(message.from) < 0)
+				continue;
+			if (since != "" && (ts == "" || ts < since))
+				continue;
+			kept.push(message);
+		}
+		return kept;
 	}
 
 	/** The hop count a bridge-sent text carries; 0 for a text a person or agent sent directly. **/
@@ -149,7 +193,7 @@ class Policy {
 		for (raw in stdout.split("\n")) {
 			var line = StringTools.trim(raw);
 			if (line.charAt(0) == "{") {
-				var parsed:Dynamic = try haxe.Json.parse(line) catch (e:Dynamic) null;
+				var parsed:Dynamic = try parseJson(line) catch (e:Dynamic) null;
 				if (parsed != null && parsed.type == "result")
 					record = parsed;
 			}
@@ -180,7 +224,7 @@ class Policy {
 			var line = StringTools.trim(raw);
 			if (line.charAt(0) != "{")
 				continue;
-			var event:Dynamic = try haxe.Json.parse(line) catch (e:Dynamic) null;
+			var event:Dynamic = try parseJson(line) catch (e:Dynamic) null;
 			if (event == null)
 				continue;
 			switch (event.type) {

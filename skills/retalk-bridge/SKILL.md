@@ -41,6 +41,13 @@ Codex identity) should exchange messages without a human copying them across.
   cannot answer each other forever (`max_hops`).
 - Messages are presented as coming from another agent, not from the user.
 
+## Another receiver already running?
+
+`retalk receive` is destructive. If another program (for example the
+agent-talk plugin's follower) already receives for an identity, set that side's
+`inbox_file` to the NDJSON inbox it writes (`--claude-inbox` / `--codex-inbox`)
+so the bridge reads that file instead of competing for the mailbox. See the guide.
+
 ## Install
 
 From a checkout of this kit:

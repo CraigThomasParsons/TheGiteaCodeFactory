@@ -11,11 +11,18 @@
 # Usage: skills/retalk-bridge/scripts/install.sh
 #          --claude-identity DIR --claude-peer NAME
 #          --codex-identity DIR --codex-peer NAME
+#          [--claude-inbox FILE] [--codex-inbox FILE]
 #          [--hook-cwd DIR]... [--watcher] [--dry-run]
 #   --claude-identity  retalk identity directory the Claude side reads and sends as
 #   --claude-peer      the Codex identity's name in that identity's contacts
 #   --codex-identity   retalk identity directory the Codex side reads and sends as
 #   --codex-peer       the Claude identity's name in that identity's contacts
+#   --claude-inbox / --codex-inbox FILE
+#                      an NDJSON inbox another receiver already fills for that
+#                      identity (for example agent-talk's <user>/inbox.ndjson).
+#                      The side then reads that file instead of running
+#                      `retalk receive`, so the two never split a mailbox.
+#                      Only messages arriving after the install are processed.
 #   --hook-cwd DIR     a directory (and its subdirectories) where live sessions
 #                      get messages through hooks; repeatable. None means hooks
 #                      stay silent until you add directories to the config.
@@ -28,7 +35,7 @@ set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
 skill="$(dirname "$here")"
-claude_identity="" claude_peer="" codex_identity="" codex_peer=""
+claude_identity="" claude_peer="" codex_identity="" codex_peer="" claude_inbox="" codex_inbox=""
 hook_cwds=() watcher=0 dry_run=0
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -36,6 +43,8 @@ while [[ $# -gt 0 ]]; do
         --claude-peer) claude_peer="$2"; shift ;;
         --codex-identity) codex_identity="$2"; shift ;;
         --codex-peer) codex_peer="$2"; shift ;;
+        --claude-inbox) claude_inbox="$2"; shift ;;
+        --codex-inbox) codex_inbox="$2"; shift ;;
         --hook-cwd) hook_cwds+=("$2"); shift ;;
         --watcher) watcher=1 ;;
         --dry-run) dry_run=1 ;;
@@ -81,12 +90,15 @@ if [[ -f "$config" ]]; then
 else
     # A few lines of Python only to write JSON with correct quoting.
     run python3 - "$config" "$skill/templates/config.example.json" "$claude_identity" "$claude_peer" \
-        "$codex_identity" "$codex_peer" "${hook_cwds[@]}" <<'PY'
-import json, os, sys
-path, template, ci, cp, xi, xp, *cwds = sys.argv[1:]
+        "$codex_identity" "$codex_peer" "$claude_inbox" "$codex_inbox" "${hook_cwds[@]}" <<'PY'
+import json, os, sys, time
+path, template, ci, cp, xi, xp, cin, xin, *cwds = sys.argv[1:]
 config = json.load(open(template))
-config["sides"]["claude"].update(identity_dir=ci, peer=cp, hook_cwds=cwds)
-config["sides"]["codex"].update(identity_dir=xi, peer=xp, hook_cwds=cwds)
+since = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+for side, ident, peer, inbox in (("claude", ci, cp, cin), ("codex", xi, xp, xin)):
+    config["sides"][side].update(identity_dir=ident, peer=peer, hook_cwds=cwds)
+    if inbox:
+        config["sides"][side].update(inbox_file=inbox, inbox_since=since)
 fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
 with os.fdopen(fd, "w") as out:
     json.dump(config, out, indent=2)

@@ -13,7 +13,6 @@ import inspect as python_lib_Inspect
 import sys as python_lib_Sys
 import builtins as python_lib_Builtins
 import functools as python_lib_Functools
-import json as python_lib_Json
 import os as python_lib_Os
 import re as python_lib_Re
 import time as python_lib_Time
@@ -455,11 +454,16 @@ StringTools._hx_class = StringTools
 class sys_FileSystem:
     _hx_class_name = "sys.FileSystem"
     __slots__ = ()
-    _hx_statics = ["exists", "rename", "createDirectory"]
+    _hx_statics = ["exists", "stat", "rename", "createDirectory"]
 
     @staticmethod
     def exists(path):
         return python_lib_os_Path.exists(path)
+
+    @staticmethod
+    def stat(path):
+        s = python_lib_Os.stat(path)
+        return _hx_AnonObject({'gid': s.st_gid, 'uid': s.st_uid, 'atime': Date.fromTime((1000 * s.st_atime)), 'mtime': Date.fromTime((1000 * s.st_mtime)), 'ctime': Date.fromTime((1000 * s.st_ctime)), 'size': s.st_size, 'dev': s.st_dev, 'ino': s.st_ino, 'nlink': s.st_nlink, 'rdev': getattr(s,"st_rdev",0), 'mode': s.st_mode})
 
     @staticmethod
     def rename(path,newPath):
@@ -677,7 +681,7 @@ gcf_retalkbridge_Failure._hx_class = gcf_retalkbridge_Failure
 class gcf_retalkbridge_Main:
     _hx_class_name = "gcf.retalkbridge.Main"
     __slots__ = ()
-    _hx_statics = ["config", "configPath", "main", "USAGE", "usage", "parseOptions", "home", "expand", "loadConfig", "setting", "sideNames", "sideConfig", "requireSide", "stateDir", "readJson", "writeJson", "now", "stamp", "log", "withLock", "run", "spool", "saveSpool", "fetch", "firstLine", "toMessage", "send", "hookAllowed", "hook", "scriptPath", "tick", "targetSession", "resume", "clip", "updateEntries", "codexExhaustedUntil", "status", "MARKER", "installHooks", "mergeHookFile", "isOurs"]
+    _hx_statics = ["config", "configPath", "main", "USAGE", "usage", "parseOptions", "home", "expand", "loadConfig", "setting", "sideNames", "sideConfig", "requireSide", "stateDir", "readJson", "writeJson", "now", "stamp", "log", "withLock", "run", "spool", "saveSpool", "fetch", "readInbox", "firstLine", "toMessage", "send", "hookAllowed", "hook", "scriptPath", "tick", "targetSession", "resume", "clip", "updateEntries", "codexExhaustedUntil", "status", "MARKER", "installHooks", "mergeHookFile", "isOurs"]
     config = None
     configPath = None
 
@@ -934,7 +938,7 @@ class gcf_retalkbridge_Main:
         gcf_retalkbridge_Main.configPath = (fromEnv if (((fromEnv is not None) and ((fromEnv != "")))) else (HxOverrides.stringOrNull(gcf_retalkbridge_Main.home()) + "/.config/retalk-bridge/config.json"))
         if (not sys_FileSystem.exists(gcf_retalkbridge_Main.configPath)):
             raise gcf_retalkbridge_Failure((("no config at " + HxOverrides.stringOrNull(gcf_retalkbridge_Main.configPath)) + " (see skills/retalk-bridge/SKILL.md)"))
-        gcf_retalkbridge_Main.config = python_lib_Json.loads(sys_io_File.getContent(gcf_retalkbridge_Main.configPath),**python__KwArgs_KwArgs_Impl_.fromT(_hx_AnonObject({'object_hook': python_Lib.dictToAnon})))
+        gcf_retalkbridge_Main.config = gcf_retalkbridge_Policy.parseJson(sys_io_File.getContent(gcf_retalkbridge_Main.configPath))
         if (Reflect.field(gcf_retalkbridge_Main.config,"sides") is None):
             raise gcf_retalkbridge_Failure((HxOverrides.stringOrNull(gcf_retalkbridge_Main.configPath) + " has no \"sides\""))
 
@@ -981,7 +985,7 @@ class gcf_retalkbridge_Main:
         if (not sys_FileSystem.exists(path)):
             return fallback
         try:
-            return python_lib_Json.loads(sys_io_File.getContent(path),**python__KwArgs_KwArgs_Impl_.fromT(_hx_AnonObject({'object_hook': python_Lib.dictToAnon})))
+            return gcf_retalkbridge_Policy.parseJson(sys_io_File.getContent(path))
         except BaseException as _g:
             None
             return fallback
@@ -1080,11 +1084,15 @@ class gcf_retalkbridge_Main:
         added = 0
         def _hx_local_3():
             nonlocal added
-            result = gcf_retalkbridge_Main.run([gcf_retalkbridge_Main.expand(gcf_retalkbridge_Main.setting("retalk","retalk")), "receive", "--dir", gcf_retalkbridge_Main.expand(conf.identity_dir), "--peer", conf.peer, "--quiet", "--save"],None,gcf_retalkbridge_Main.setting("retalk_timeout_seconds",30),False)
-            messages = gcf_retalkbridge_Policy.parseReceive(result.out)
-            if ((result.code != 0) and ((len(messages) == 0))):
-                gcf_retalkbridge_Main.log(side,"fetch_failed",_hx_AnonObject({'code': result.code, 'detail': gcf_retalkbridge_Main.firstLine(result.err)}))
-                return
+            messages = None
+            if (conf.inbox_file is not None):
+                messages = gcf_retalkbridge_Main.readInbox(side,conf)
+            else:
+                result = gcf_retalkbridge_Main.run([gcf_retalkbridge_Main.expand(gcf_retalkbridge_Main.setting("retalk","retalk")), "receive", "--dir", gcf_retalkbridge_Main.expand(conf.identity_dir), "--peer", conf.peer, "--quiet", "--save"],None,gcf_retalkbridge_Main.setting("retalk_timeout_seconds",30),False)
+                messages = gcf_retalkbridge_Policy.parseReceive(result.out)
+                if ((result.code != 0) and ((len(messages) == 0))):
+                    gcf_retalkbridge_Main.log(side,"fetch_failed",_hx_AnonObject({'code': result.code, 'detail': gcf_retalkbridge_Main.firstLine(result.err)}))
+                    return
             entries = gcf_retalkbridge_Main.spool(side)
             known = haxe_ds_StringMap()
             _g = 0
@@ -1109,6 +1117,36 @@ class gcf_retalkbridge_Main:
         return added
 
     @staticmethod
+    def readInbox(side,conf):
+        path = gcf_retalkbridge_Main.expand(Reflect.field(conf,"inbox_file"))
+        if (not sys_FileSystem.exists(path)):
+            return []
+        cursorPath = (HxOverrides.stringOrNull(gcf_retalkbridge_Main.stateDir(side)) + "/inbox-cursor.json")
+        cursor = gcf_retalkbridge_Main.readJson(cursorPath,_hx_AnonObject({'offset': 0}))
+        offset = (0 if ((Reflect.field(cursor,"offset") is None)) else Reflect.field(cursor,"offset"))
+        size = sys_FileSystem.stat(path).size
+        if (size < offset):
+            offset = 0
+        chunk = _retalk_bridge_read_from(path, offset)
+        startIndex = None
+        complete = None
+        if (startIndex is None):
+            complete = chunk.rfind("\n", 0, len(chunk))
+        else:
+            i = chunk.rfind("\n", 0, (startIndex + 1))
+            startLeft = (max(0,((startIndex + 1) - len("\n"))) if ((i == -1)) else (i + 1))
+            check = chunk.find("\n", startLeft, len(chunk))
+            complete = (check if (((check > i) and ((check <= startIndex)))) else i)
+        complete1 = (complete + 1)
+        body = HxString.substr(chunk,0,complete1)
+        gcf_retalkbridge_Main.writeJson(cursorPath,_hx_AnonObject({'offset': python_Boot._add_dynamic(offset,len(body.encode('utf-8')))}))
+        senders = [Reflect.field(conf,"peer")]
+        if (Reflect.field(conf,"peer_fingerprint") is not None):
+            x = Reflect.field(conf,"peer_fingerprint")
+            senders.append(x)
+        return gcf_retalkbridge_Policy.parseInbox(body,senders,("" if ((Reflect.field(conf,"inbox_since") is None)) else Reflect.field(conf,"inbox_since")))
+
+    @staticmethod
     def firstLine(text):
         _this = StringTools.trim(text)
         lines = _this.split("\n")
@@ -1129,7 +1167,7 @@ class gcf_retalkbridge_Main:
         result = gcf_retalkbridge_Main.run([gcf_retalkbridge_Main.expand(gcf_retalkbridge_Main.setting("retalk","retalk")), "send", "--dir", gcf_retalkbridge_Main.expand(conf.identity_dir), "--peer", conf.peer, "--save", body],None,gcf_retalkbridge_Main.setting("retalk_timeout_seconds",30),False)
         receipt = None
         try:
-            receipt = python_lib_Json.loads(StringTools.trim(result.out),**python__KwArgs_KwArgs_Impl_.fromT(_hx_AnonObject({'object_hook': python_Lib.dictToAnon})))
+            receipt = gcf_retalkbridge_Policy.parseJson(StringTools.trim(result.out))
         except BaseException as _g:
             None
             receipt = None
@@ -1168,7 +1206,7 @@ class gcf_retalkbridge_Main:
         input = Sys.stdin().readAll().toString()
         event = None
         try:
-            event = python_lib_Json.loads(input,**python__KwArgs_KwArgs_Impl_.fromT(_hx_AnonObject({'object_hook': python_Lib.dictToAnon})))
+            event = gcf_retalkbridge_Policy.parseJson(input)
         except BaseException as _g:
             None
             event = None
@@ -1506,7 +1544,7 @@ class gcf_retalkbridge_Main:
             return 0
         tmp = None
         try:
-            tmp = python_lib_Json.loads(snapshot,**python__KwArgs_KwArgs_Impl_.fromT(_hx_AnonObject({'object_hook': python_Lib.dictToAnon})))
+            tmp = gcf_retalkbridge_Policy.parseJson(snapshot)
         except BaseException as _g:
             None
             tmp = None
@@ -1553,7 +1591,7 @@ class gcf_retalkbridge_Main:
 
     @staticmethod
     def mergeHookFile(path,events,hookCommand,codex):
-        data = (python_lib_Json.loads(sys_io_File.getContent(path),**python__KwArgs_KwArgs_Impl_.fromT(_hx_AnonObject({'object_hook': python_Lib.dictToAnon}))) if (sys_FileSystem.exists(path)) else _hx_AnonObject({}))
+        data = (gcf_retalkbridge_Policy.parseJson(sys_io_File.getContent(path)) if (sys_FileSystem.exists(path)) else _hx_AnonObject({}))
         if (Reflect.field(data,"hooks") is None):
             Reflect.setField(data,"hooks",_hx_AnonObject({}))
         changed = False
@@ -1631,7 +1669,11 @@ gcf_retalkbridge_Main._hx_class = gcf_retalkbridge_Main
 class gcf_retalkbridge_Policy:
     _hx_class_name = "gcf.retalkbridge.Policy"
     __slots__ = ()
-    _hx_statics = ["HOP_PREFIX", "NO_REPLY", "parseReceive", "hopOf", "stripHop", "markHop", "shouldResume", "replyAllowed", "recentCount", "limitText", "limitNotice", "parseReset", "num", "classifyClaude", "classifyCodex", "codexExhaustedUntil", "outcome", "firstLine", "resumePrompt", "hookContext", "isNoReply"]
+    _hx_statics = ["HOP_PREFIX", "NO_REPLY", "parseJson", "parseReceive", "parseInbox", "hopOf", "stripHop", "markHop", "shouldResume", "replyAllowed", "recentCount", "limitText", "limitNotice", "parseReset", "num", "classifyClaude", "classifyCodex", "codexExhaustedUntil", "outcome", "firstLine", "resumePrompt", "hookContext", "isNoReply"]
+
+    @staticmethod
+    def parseJson(text):
+        return haxe_format_JsonParser(text).doParse()
 
     @staticmethod
     def parseReceive(output):
@@ -1646,7 +1688,7 @@ class gcf_retalkbridge_Policy:
                 continue
             record = None
             try:
-                record = python_lib_Json.loads(line,**python__KwArgs_KwArgs_Impl_.fromT(_hx_AnonObject({'object_hook': python_Lib.dictToAnon})))
+                record = gcf_retalkbridge_Policy.parseJson(line)
             except BaseException as _g2:
                 None
                 record = None
@@ -1659,6 +1701,43 @@ class gcf_retalkbridge_Policy:
             x = _hx_AnonObject({'id': id, '_hx_from': ("" if ((Reflect.field(record,"from") is None)) else Std.string(Reflect.field(record,"from"))), 'name': ("" if ((Reflect.field(record,"name") is None)) else Std.string(Reflect.field(record,"name"))), 'text': gcf_retalkbridge_Policy.stripHop(text), 'hop': gcf_retalkbridge_Policy.hopOf(text)})
             messages.append(x)
         return messages
+
+    @staticmethod
+    def parseInbox(output,senders,since):
+        kept = []
+        lines = output.split("\n")
+        records = []
+        _g = 0
+        while (_g < len(lines)):
+            raw = (lines[_g] if _g >= 0 and _g < len(lines) else None)
+            _g = (_g + 1)
+            line = StringTools.trim(raw)
+            if ((("" if ((0 >= len(line))) else line[0])) != "{"):
+                continue
+            record = None
+            try:
+                record = gcf_retalkbridge_Policy.parseJson(line)
+            except BaseException as _g1:
+                None
+                record = None
+            if (record is not None):
+                records.append(record)
+        index = 0
+        _g = 0
+        _g1 = gcf_retalkbridge_Policy.parseReceive(output)
+        while (_g < len(_g1)):
+            message = (_g1[_g] if _g >= 0 and _g < len(_g1) else None)
+            _g = (_g + 1)
+            while ((index < len(records)) and ((Reflect.field((records[index] if index >= 0 and index < len(records) else None),"id") != message.id))):
+                index = (index + 1)
+            record = ((records[index] if index >= 0 and index < len(records) else None) if ((index < len(records))) else None)
+            ts = ("" if (((record is None) or ((Reflect.field(record,"ts") is None)))) else Std.string(Reflect.field(record,"ts")))
+            if ((python_internal_ArrayImpl.indexOf(senders,message.name,None) < 0) and ((python_internal_ArrayImpl.indexOf(senders,message._hx_from,None) < 0))):
+                continue
+            if ((since != "") and (((ts == "") or ((ts < since))))):
+                continue
+            kept.append(message)
+        return kept
 
     @staticmethod
     def hopOf(text):
@@ -1772,7 +1851,7 @@ class gcf_retalkbridge_Policy:
             if ((("" if ((0 >= len(line))) else line[0])) == "{"):
                 parsed = None
                 try:
-                    parsed = python_lib_Json.loads(line,**python__KwArgs_KwArgs_Impl_.fromT(_hx_AnonObject({'object_hook': python_Lib.dictToAnon})))
+                    parsed = gcf_retalkbridge_Policy.parseJson(line)
                 except BaseException as _g2:
                     None
                     parsed = None
@@ -1810,7 +1889,7 @@ class gcf_retalkbridge_Policy:
                 continue
             event = None
             try:
-                event = python_lib_Json.loads(line,**python__KwArgs_KwArgs_Impl_.fromT(_hx_AnonObject({'object_hook': python_Lib.dictToAnon})))
+                event = gcf_retalkbridge_Policy.parseJson(line)
             except BaseException as _g2:
                 None
                 event = None
@@ -2030,6 +2109,362 @@ class haxe_exceptions_NotImplementedException(haxe_exceptions_PosException):
             message = "Not implemented"
         super().__init__(message,previous,pos)
 haxe_exceptions_NotImplementedException._hx_class = haxe_exceptions_NotImplementedException
+
+
+class haxe_format_JsonParser:
+    _hx_class_name = "haxe.format.JsonParser"
+    __slots__ = ("str", "pos")
+    _hx_fields = ["str", "pos"]
+    _hx_methods = ["doParse", "parseRec", "parseString", "invalidChar", "invalidNumber"]
+
+    def __init__(self,_hx_str):
+        self.str = _hx_str
+        self.pos = 0
+
+    def doParse(self):
+        result = self.parseRec()
+        c = None
+        while True:
+            s = self.str
+            index = self.pos
+            self.pos = (self.pos + 1)
+            c = (-1 if ((index >= len(s))) else ord(s[index]))
+            if (not ((c != -1))):
+                break
+            c1 = c
+            if ((((c1 == 32) or ((c1 == 13))) or ((c1 == 10))) or ((c1 == 9))):
+                pass
+            else:
+                self.invalidChar()
+        return result
+
+    def parseRec(self):
+        while True:
+            s = self.str
+            index = self.pos
+            self.pos = (self.pos + 1)
+            c = (-1 if ((index >= len(s))) else ord(s[index]))
+            c1 = c
+            if ((((c1 == 32) or ((c1 == 13))) or ((c1 == 10))) or ((c1 == 9))):
+                pass
+            elif (c1 == 34):
+                return self.parseString()
+            elif (((((((((((c1 == 57) or ((c1 == 56))) or ((c1 == 55))) or ((c1 == 54))) or ((c1 == 53))) or ((c1 == 52))) or ((c1 == 51))) or ((c1 == 50))) or ((c1 == 49))) or ((c1 == 48))) or ((c1 == 45))):
+                c2 = c
+                start = (self.pos - 1)
+                minus = (c2 == 45)
+                digit = (not minus)
+                zero = (c2 == 48)
+                point = False
+                e = False
+                pm = False
+                end = False
+                while True:
+                    s1 = self.str
+                    index1 = self.pos
+                    self.pos = (self.pos + 1)
+                    c2 = (-1 if ((index1 >= len(s1))) else ord(s1[index1]))
+                    c3 = c2
+                    if ((c3 == 45) or ((c3 == 43))):
+                        if ((not e) or pm):
+                            self.invalidNumber(start)
+                        digit = False
+                        pm = True
+                    elif (c3 == 46):
+                        if ((minus or point) or e):
+                            self.invalidNumber(start)
+                        digit = False
+                        point = True
+                    elif (c3 == 48):
+                        if (zero and (not point)):
+                            self.invalidNumber(start)
+                        if minus:
+                            minus = False
+                            zero = True
+                        digit = True
+                    elif (((((((((c3 == 57) or ((c3 == 56))) or ((c3 == 55))) or ((c3 == 54))) or ((c3 == 53))) or ((c3 == 52))) or ((c3 == 51))) or ((c3 == 50))) or ((c3 == 49))):
+                        if (zero and (not point)):
+                            self.invalidNumber(start)
+                        if minus:
+                            minus = False
+                        digit = True
+                        zero = False
+                    elif ((c3 == 101) or ((c3 == 69))):
+                        if ((minus or zero) or e):
+                            self.invalidNumber(start)
+                        digit = False
+                        e = True
+                    else:
+                        if (not digit):
+                            self.invalidNumber(start)
+                        _hx_local_0 = self
+                        _hx_local_1 = _hx_local_0.pos
+                        _hx_local_0.pos = (_hx_local_1 - 1)
+                        _hx_local_1
+                        end = True
+                    if (not ((not end))):
+                        break
+                f = Std.parseFloat(HxString.substr(self.str,start,(self.pos - start)))
+                if point:
+                    return f
+                else:
+                    i = None
+                    try:
+                        i = int(f)
+                    except BaseException as _g:
+                        None
+                        i = None
+                    i1 = i
+                    if (i1 == f):
+                        return i1
+                    else:
+                        return f
+            elif (c1 == 91):
+                arr = []
+                comma = None
+                while True:
+                    s2 = self.str
+                    index2 = self.pos
+                    self.pos = (self.pos + 1)
+                    c4 = (-1 if ((index2 >= len(s2))) else ord(s2[index2]))
+                    c5 = c4
+                    if ((((c5 == 32) or ((c5 == 13))) or ((c5 == 10))) or ((c5 == 9))):
+                        pass
+                    elif (c5 == 44):
+                        if comma:
+                            comma = False
+                        else:
+                            self.invalidChar()
+                    elif (c5 == 93):
+                        if (comma == False):
+                            self.invalidChar()
+                        return arr
+                    else:
+                        if comma:
+                            self.invalidChar()
+                        _hx_local_2 = self
+                        _hx_local_3 = _hx_local_2.pos
+                        _hx_local_2.pos = (_hx_local_3 - 1)
+                        _hx_local_3
+                        x = self.parseRec()
+                        arr.append(x)
+                        comma = True
+            elif (c1 == 102):
+                save = self.pos
+                tmp = None
+                tmp1 = None
+                tmp2 = None
+                s3 = self.str
+                index3 = self.pos
+                self.pos = (self.pos + 1)
+                if (((-1 if ((index3 >= len(s3))) else ord(s3[index3]))) == 97):
+                    s4 = self.str
+                    index4 = self.pos
+                    self.pos = (self.pos + 1)
+                    tmp2 = (((-1 if ((index4 >= len(s4))) else ord(s4[index4]))) != 108)
+                else:
+                    tmp2 = True
+                if (not tmp2):
+                    s5 = self.str
+                    index5 = self.pos
+                    self.pos = (self.pos + 1)
+                    tmp1 = (((-1 if ((index5 >= len(s5))) else ord(s5[index5]))) != 115)
+                else:
+                    tmp1 = True
+                if (not tmp1):
+                    s6 = self.str
+                    index6 = self.pos
+                    self.pos = (self.pos + 1)
+                    tmp = (((-1 if ((index6 >= len(s6))) else ord(s6[index6]))) != 101)
+                else:
+                    tmp = True
+                if tmp:
+                    self.pos = save
+                    self.invalidChar()
+                return False
+            elif (c1 == 110):
+                save1 = self.pos
+                tmp3 = None
+                tmp4 = None
+                s7 = self.str
+                index7 = self.pos
+                self.pos = (self.pos + 1)
+                if (((-1 if ((index7 >= len(s7))) else ord(s7[index7]))) == 117):
+                    s8 = self.str
+                    index8 = self.pos
+                    self.pos = (self.pos + 1)
+                    tmp4 = (((-1 if ((index8 >= len(s8))) else ord(s8[index8]))) != 108)
+                else:
+                    tmp4 = True
+                if (not tmp4):
+                    s9 = self.str
+                    index9 = self.pos
+                    self.pos = (self.pos + 1)
+                    tmp3 = (((-1 if ((index9 >= len(s9))) else ord(s9[index9]))) != 108)
+                else:
+                    tmp3 = True
+                if tmp3:
+                    self.pos = save1
+                    self.invalidChar()
+                return None
+            elif (c1 == 116):
+                save2 = self.pos
+                tmp5 = None
+                tmp6 = None
+                s10 = self.str
+                index10 = self.pos
+                self.pos = (self.pos + 1)
+                if (((-1 if ((index10 >= len(s10))) else ord(s10[index10]))) == 114):
+                    s11 = self.str
+                    index11 = self.pos
+                    self.pos = (self.pos + 1)
+                    tmp6 = (((-1 if ((index11 >= len(s11))) else ord(s11[index11]))) != 117)
+                else:
+                    tmp6 = True
+                if (not tmp6):
+                    s12 = self.str
+                    index12 = self.pos
+                    self.pos = (self.pos + 1)
+                    tmp5 = (((-1 if ((index12 >= len(s12))) else ord(s12[index12]))) != 101)
+                else:
+                    tmp5 = True
+                if tmp5:
+                    self.pos = save2
+                    self.invalidChar()
+                return True
+            elif (c1 == 123):
+                obj = _hx_AnonObject({})
+                field = None
+                comma1 = None
+                while True:
+                    s13 = self.str
+                    index13 = self.pos
+                    self.pos = (self.pos + 1)
+                    c6 = (-1 if ((index13 >= len(s13))) else ord(s13[index13]))
+                    c7 = c6
+                    if ((((c7 == 32) or ((c7 == 13))) or ((c7 == 10))) or ((c7 == 9))):
+                        pass
+                    elif (c7 == 34):
+                        if ((field is not None) or comma1):
+                            self.invalidChar()
+                        field = self.parseString()
+                    elif (c7 == 44):
+                        if comma1:
+                            comma1 = False
+                        else:
+                            self.invalidChar()
+                    elif (c7 == 58):
+                        if (field is None):
+                            self.invalidChar()
+                        value = self.parseRec()
+                        setattr(obj,(("_hx_" + field) if ((field in python_Boot.keywords)) else (("_hx_" + field) if (((((len(field) > 2) and ((ord(field[0]) == 95))) and ((ord(field[1]) == 95))) and ((ord(field[(len(field) - 1)]) != 95)))) else field)),value)
+                        field = None
+                        comma1 = True
+                    elif (c7 == 125):
+                        if ((field is not None) or ((comma1 == False))):
+                            self.invalidChar()
+                        return obj
+                    else:
+                        self.invalidChar()
+            else:
+                self.invalidChar()
+
+    def parseString(self):
+        start = self.pos
+        buf = None
+        prev = -1
+        while True:
+            s = self.str
+            index = self.pos
+            self.pos = (self.pos + 1)
+            c = (-1 if ((index >= len(s))) else ord(s[index]))
+            if (c == 34):
+                break
+            if (c == 92):
+                if (buf is None):
+                    buf = StringBuf()
+                s1 = self.str
+                _hx_len = ((self.pos - start) - 1)
+                s2 = (HxString.substr(s1,start,None) if ((_hx_len is None)) else HxString.substr(s1,start,_hx_len))
+                buf.b.write(s2)
+                s3 = self.str
+                index1 = self.pos
+                self.pos = (self.pos + 1)
+                c = (-1 if ((index1 >= len(s3))) else ord(s3[index1]))
+                if ((c != 117) and ((prev != -1))):
+                    s4 = "".join(map(chr,[65533]))
+                    buf.b.write(s4)
+                    prev = -1
+                c1 = c
+                if (((c1 == 92) or ((c1 == 47))) or ((c1 == 34))):
+                    s5 = "".join(map(chr,[c]))
+                    buf.b.write(s5)
+                elif (c1 == 98):
+                    s6 = "".join(map(chr,[8]))
+                    buf.b.write(s6)
+                elif (c1 == 102):
+                    s7 = "".join(map(chr,[12]))
+                    buf.b.write(s7)
+                elif (c1 == 110):
+                    s8 = "".join(map(chr,[10]))
+                    buf.b.write(s8)
+                elif (c1 == 114):
+                    s9 = "".join(map(chr,[13]))
+                    buf.b.write(s9)
+                elif (c1 == 116):
+                    s10 = "".join(map(chr,[9]))
+                    buf.b.write(s10)
+                elif (c1 == 117):
+                    uc = Std.parseInt(("0x" + HxOverrides.stringOrNull(HxString.substr(self.str,self.pos,4))))
+                    _hx_local_0 = self
+                    _hx_local_1 = _hx_local_0.pos
+                    _hx_local_0.pos = (_hx_local_1 + 4)
+                    _hx_local_0.pos
+                    if (prev != -1):
+                        if ((uc < 56320) or ((uc > 57343))):
+                            s11 = "".join(map(chr,[65533]))
+                            buf.b.write(s11)
+                            prev = -1
+                        else:
+                            s12 = "".join(map(chr,[(((((prev - 55296) << 10)) + ((uc - 56320))) + 65536)]))
+                            buf.b.write(s12)
+                            prev = -1
+                    elif ((uc >= 55296) and ((uc <= 56319))):
+                        prev = uc
+                    else:
+                        s13 = "".join(map(chr,[uc]))
+                        buf.b.write(s13)
+                else:
+                    raise haxe_Exception.thrown(((("Invalid escape sequence \\" + HxOverrides.stringOrNull("".join(map(chr,[c])))) + " at position ") + Std.string(((self.pos - 1)))))
+                start = self.pos
+            elif (c == -1):
+                raise haxe_Exception.thrown("Unclosed string")
+        if (prev != -1):
+            s = "".join(map(chr,[65533]))
+            buf.b.write(s)
+            prev = -1
+        if (buf is None):
+            return HxString.substr(self.str,start,((self.pos - start) - 1))
+        else:
+            s = self.str
+            _hx_len = ((self.pos - start) - 1)
+            s1 = (HxString.substr(s,start,None) if ((_hx_len is None)) else HxString.substr(s,start,_hx_len))
+            buf.b.write(s1)
+            return buf.b.getvalue()
+
+    def invalidChar(self):
+        _hx_local_0 = self
+        _hx_local_1 = _hx_local_0.pos
+        _hx_local_0.pos = (_hx_local_1 - 1)
+        _hx_local_1
+        s = self.str
+        index = self.pos
+        raise haxe_Exception.thrown(((("Invalid char " + Std.string(((-1 if ((index >= len(s))) else ord(s[index]))))) + " at position ") + Std.string(self.pos)))
+
+    def invalidNumber(self,start):
+        raise haxe_Exception.thrown(((("Invalid number at position " + Std.string(start)) + ": ") + HxOverrides.stringOrNull(HxString.substr(self.str,start,(self.pos - start)))))
+
+haxe_format_JsonParser._hx_class = haxe_format_JsonParser
 
 
 class haxe_format_JsonPrinter:
@@ -2602,7 +3037,15 @@ haxe_iterators_ArrayKeyValueIterator._hx_class = haxe_iterators_ArrayKeyValueIte
 class python_Boot:
     _hx_class_name = "python.Boot"
     __slots__ = ()
-    _hx_statics = ["keywords", "toString1", "fields", "simpleField", "hasField", "field", "getInstanceFields", "getSuperClass", "getClassFields", "prefixLength", "unhandleKeywords"]
+    _hx_statics = ["keywords", "_add_dynamic", "toString1", "fields", "simpleField", "hasField", "field", "getInstanceFields", "getSuperClass", "getClassFields", "prefixLength", "unhandleKeywords"]
+
+    @staticmethod
+    def _add_dynamic(a,b):
+        if (isinstance(a,str) and isinstance(b,str)):
+            return (a + b)
+        if (isinstance(a,str) or isinstance(b,str)):
+            return (python_Boot.toString1(a,"") + python_Boot.toString1(b,""))
+        return (a + b)
 
     @staticmethod
     def toString1(o,s):
@@ -3017,7 +3460,7 @@ python__KwArgs_KwArgs_Impl_._hx_class = python__KwArgs_KwArgs_Impl_
 class python_Lib:
     _hx_class_name = "python.Lib"
     __slots__ = ()
-    _hx_statics = ["lineEnd", "printString", "dictToAnon", "anonToDict", "anonAsDict"]
+    _hx_statics = ["lineEnd", "printString", "anonToDict", "anonAsDict"]
 
     @staticmethod
     def printString(_hx_str):
@@ -3026,10 +3469,6 @@ class python_Lib:
             encoding = "utf-8"
         python_lib_Sys.stdout.buffer.write(_hx_str.encode(encoding, "strict"))
         python_lib_Sys.stdout.flush()
-
-    @staticmethod
-    def dictToAnon(v):
-        return _hx_AnonObject(v.copy())
 
     @staticmethod
     def anonToDict(o):
@@ -3692,6 +4131,10 @@ Math.NEGATIVE_INFINITY = float("-inf")
 Math.POSITIVE_INFINITY = float("inf")
 Math.NaN = float("nan")
 Math.PI = python_lib_Math.pi
+def _retalk_bridge_read_from(path, offset):
+    with open(path, 'rb') as handle:
+        handle.seek(offset)
+        return handle.read().decode('utf-8', 'replace')
 def _retalk_bridge_codex_snapshot(root):
     import os, json
     newest, newest_mtime = None, -1.0

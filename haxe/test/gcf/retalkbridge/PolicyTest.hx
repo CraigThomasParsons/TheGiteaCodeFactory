@@ -98,4 +98,17 @@ class PolicyTest extends utest.Test {
 		Assert.isTrue(Policy.isNoReply(""));
 		Assert.isFalse(Policy.isNoReply("pong"));
 	}
+
+	function testParseInboxFiltersSenderAndTime() {
+		var output = '{"id":"o1","from":"aa","name":"codex","text":"old","ts":"2026-10-17T01:00:00Z"}\n'
+			+ '{"id":"n1","from":"aa","name":"codex","text":"new","ts":"2026-10-17T01:43:56Z"}\n'
+			+ '{"id":"x1","from":"bb","name":"stranger","text":"spam","ts":"2026-10-17T01:50:00Z"}\n'
+			+ '{"id":"c1","from":"aa","name":"codex","kind":"contact","card":{},"ts":"2026-10-17T01:50:00Z"}\n'
+			+ '{"id":"f1","from":"aa","name":"renamed","text":"by fingerprint","ts":"2026-10-17T01:51:00Z"}\n';
+		var kept = Policy.parseInbox(output, ["codex", "aa"], "2026-10-17T01:43:00Z");
+		Assert.equals(2, kept.length);
+		Assert.equals("n1", kept[0].id);
+		Assert.equals("f1", kept[1].id);
+		Assert.equals(3, Policy.parseInbox(output, ["codex", "aa"], "").length);
+	}
 }

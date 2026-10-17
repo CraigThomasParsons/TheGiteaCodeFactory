@@ -56,6 +56,22 @@ peer sends ──► relay ──► retalk receive (destructive) ──► spoo
    hook-seen session once it has been quiet for `idle_seconds` and ended its turn.
    What the watcher answered is shown to your live session at its next prompt.
 
+## Living with another receiver
+
+`retalk receive` hands each message out once, so two programs receiving for
+the same identity split its mail between them. If something already receives
+for an identity — for example the agent-talk plugin's background follower,
+which writes `<user>/inbox.ndjson` — point that side at the file instead:
+`"inbox_file": "~/.agent-talk/users/alice-codex/inbox.ndjson"` (installer:
+`--codex-inbox FILE`). The bridge then reads new lines from that file (byte
+cursor plus id deduplication), never calls `retalk receive` for the side, and
+ignores records older than `inbox_since` and records from anyone other than
+`peer` (or `peer_fingerprint`). Check with `ps -ef | grep "retalk receive"`
+before installing. If that receiver also injects messages into live sessions
+(agent-talk does, through Claude Code monitors and an optional Codex hook),
+leave `hook_cwds` empty to avoid showing a message twice and use the bridge
+only for the idle-side watcher.
+
 ## Safety and quota rules
 
 | Risk | Guard |

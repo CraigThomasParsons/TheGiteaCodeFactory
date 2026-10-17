@@ -132,7 +132,7 @@ class Main {
 		configPath = fromEnv != null && fromEnv != "" ? fromEnv : home() + "/.config/retalk-bridge/config.json";
 		if (!FileSystem.exists(configPath))
 			throw new Failure("no config at " + configPath + " (see skills/retalk-bridge/SKILL.md)");
-		config = Json.parse(File.getContent(configPath));
+		config = Policy.parseJson(File.getContent(configPath));
 		if (config.sides == null)
 			throw new Failure(configPath + " has no \"sides\"");
 	}
@@ -174,7 +174,7 @@ class Main {
 	static function readJson(path:String, fallback:Dynamic):Dynamic {
 		if (!FileSystem.exists(path))
 			return fallback;
-		return try Json.parse(File.getContent(path)) catch (e:Dynamic) fallback;
+		return try Policy.parseJson(File.getContent(path)) catch (e:Dynamic) fallback;
 	}
 
 	/** Write JSON atomically with owner-only permissions (state can hold message text). **/
@@ -266,12 +266,17 @@ class Main {
 		var conf = sideConfig(side);
 		var added = 0;
 		withLock(stateDir(side) + "/spool.lock", true, function() {
-			var result = run([expand(setting("retalk", "retalk")), "receive", "--dir", expand(conf.identity_dir), "--peer", conf.peer, "--quiet", "--save"],
-				null, setting("retalk_timeout_seconds", 30), false);
-			var messages = Policy.parseReceive(result.out);
-			if (result.code != 0 && messages.length == 0) {
-				log(side, "fetch_failed", {code: result.code, detail: firstLine(result.err)});
-				return;
+			var messages:Array<Message>;
+			if (conf.inbox_file != null) {
+				messages = readInbox(side, conf);
+			} else {
+				var result = run([expand(setting("retalk", "retalk")), "receive", "--dir", expand(conf.identity_dir), "--peer", conf.peer, "--quiet", "--save"],
+					null, setting("retalk_timeout_seconds", 30), false);
+				messages = Policy.parseReceive(result.out);
+				if (result.code != 0 && messages.length == 0) {
+					log(side, "fetch_failed", {code: result.code, detail: firstLine(result.err)});
+					return;
+				}
 			}
 			var entries = spool(side);
 			var known = new Map<String, Bool>();
@@ -301,6 +306,33 @@ class Main {
 		return added;
 	}
 
+	/**
+		Read new records from an inbox file another receiver already fills
+		(for example the agent-talk follower), without calling `retalk receive`:
+		two destructive readers on one mailbox would split its messages. A byte
+		cursor in the side's state skips lines already read; a file that shrank
+		is read again from the start (the spool still deduplicates by id).
+	**/
+	static function readInbox(side:String, conf:Dynamic):Array<Message> {
+		var path = expand(conf.inbox_file);
+		if (!FileSystem.exists(path))
+			return [];
+		var cursorPath = stateDir(side) + "/inbox-cursor.json";
+		var cursor:Dynamic = readJson(cursorPath, {offset: 0});
+		var offset:Int = cursor.offset == null ? 0 : cursor.offset;
+		var size:Int = FileSystem.stat(path).size;
+		if (size < offset)
+			offset = 0;
+		var chunk:String = Syntax.code("_retalk_bridge_read_from({0}, {1})", path, offset);
+		var complete = chunk.lastIndexOf("\n") + 1; // leave a half-written last line for next time
+		var body = chunk.substr(0, complete);
+		writeJson(cursorPath, {offset: offset + Syntax.code("len({0}.encode('utf-8'))", body)});
+		var senders:Array<String> = [conf.peer];
+		if (conf.peer_fingerprint != null)
+			senders.push(conf.peer_fingerprint);
+		return Policy.parseInbox(body, senders, conf.inbox_since == null ? "" : conf.inbox_since);
+	}
+
 	static function firstLine(text:String):String {
 		var lines = StringTools.trim(text).split("\n");
 		var line = lines.length > 0 ? lines[lines.length - 1] : "";
@@ -318,7 +350,7 @@ class Main {
 		var body = hop > 0 ? Policy.markHop(text, hop) : text;
 		var result = run([expand(setting("retalk", "retalk")), "send", "--dir", expand(conf.identity_dir), "--peer", conf.peer, "--save", body], null,
 			setting("retalk_timeout_seconds", 30), false);
-		var receipt:Dynamic = try Json.parse(StringTools.trim(result.out)) catch (e:Dynamic) null;
+		var receipt:Dynamic = try Policy.parseJson(StringTools.trim(result.out)) catch (e:Dynamic) null;
 		if (result.code != 0 || receipt == null) {
 			log(side, "send_failed", {code: result.code, detail: firstLine(result.err)});
 			return false;
@@ -346,7 +378,7 @@ class Main {
 		if (Sys.getEnv("RETALK_BRIDGE_CHILD") == "1")
 			return; // a run the watcher started already has the messages in its prompt
 		var input = Sys.stdin().readAll().toString();
-		var event:Dynamic = try Json.parse(input) catch (e:Dynamic) null;
+		var event:Dynamic = try Policy.parseJson(input) catch (e:Dynamic) null;
 		if (event == null)
 			return;
 		var conf = sideConfig(side);
@@ -577,7 +609,7 @@ class Main {
 		var snapshot:Null<String> = Syntax.code("_retalk_bridge_codex_snapshot({0})", root);
 		if (snapshot == null)
 			return 0;
-		return Policy.codexExhaustedUntil(try Json.parse(snapshot) catch (e:Dynamic) null, t);
+		return Policy.codexExhaustedUntil(try Policy.parseJson(snapshot) catch (e:Dynamic) null, t);
 	}
 
 	// ---------------------------------------------------------------- status
@@ -625,7 +657,7 @@ class Main {
 	}
 
 	static function mergeHookFile(path:String, events:Array<String>, hookCommand:Null<String>, codex:Bool):Void {
-		var data:Dynamic = FileSystem.exists(path) ? Json.parse(File.getContent(path)) : {};
+		var data:Dynamic = FileSystem.exists(path) ? Policy.parseJson(File.getContent(path)) : {};
 		if (data.hooks == null)
 			data.hooks = {};
 		var changed = false;
@@ -679,6 +711,10 @@ class Main {
 	}
 
 	static function __init__():Void {
+		Syntax.code("def _retalk_bridge_read_from(path, offset):
+    with open(path, 'rb') as handle:
+        handle.seek(offset)
+        return handle.read().decode('utf-8', 'replace')");
 		Syntax.code("def _retalk_bridge_codex_snapshot(root):
     import os, json
     newest, newest_mtime = None, -1.0

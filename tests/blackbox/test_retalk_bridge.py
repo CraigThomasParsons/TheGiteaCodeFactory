@@ -142,6 +142,7 @@ class RetalkBridgeTest(HelperTestCase):
         self.assertEqual(argv[:2], ["exec", "--json"])
         self.assertIn("read-only", argv)
         self.assertIn("reply with the word pong", argv[-1])
+        self.assertIn("message m1 from peer", argv[-1])
         self.assertEqual(calls[0]["child"], "1")
         self.assertEqual(self.sent(), [{"from": "me-codex", "peer": "me-claude", "text": "[retalk-bridge hop=1] pong", "id": self.sent()[0]["id"]}])
         self.assertEqual([e["status"] for e in self.spool("codex")], ["answered"])
@@ -158,6 +159,29 @@ class RetalkBridgeTest(HelperTestCase):
         self.bridge("tick", "--side", "codex")
         argv = self.calls("codex")[1]["argv"]
         self.assertEqual(argv[:4], ["exec", "resume", "codex-thread-1", "--json"])
+
+    def test_inbox_file_mode_reads_without_receiving(self):
+        inbox = self.tmp / "agent-talk-inbox.ndjson"
+        self.config["sides"]["codex"].update(inbox_file=str(inbox), inbox_since="2026-10-17T01:43:00Z", peer_fingerprint="f" * 32)
+        lines = [
+            {"id": "old", "from": "f" * 32, "name": "me-claude", "text": "before install", "ts": "2026-10-17T01:00:00Z"},
+            {"id": "m1", "from": "f" * 32, "name": "me-claude", "text": "ping", "ts": "2026-10-17T01:43:56Z"},
+            {"id": "o1", "from": "e" * 32, "name": "someone", "text": "not my peer", "ts": "2026-10-17T01:44:00Z"},
+        ]
+        inbox.write_text("".join(json.dumps(line) + "\n" for line in lines) + '{"id": "partial"')
+        self.deliver("me-codex", "relay-only", "must stay on the relay")
+        self.bridge("tick", "--side", "codex")
+        self.assertEqual([e["id"] for e in self.spool("codex")], ["m1"])
+        self.assertTrue((self.fake / "me-codex.inbox").exists(), "retalk receive must not be called in inbox mode")
+        self.assertEqual(len(self.calls("codex")), 1)
+        self.assertEqual(self.sent()[0]["text"], "[retalk-bridge hop=1] pong")
+        # The half-written line is completed later and then read exactly once.
+        with open(inbox, "a") as out:
+            out.write(', "from": "' + "f" * 32 + '", "name": "me-claude", "text": "late", "ts": "2026-10-17T02:00:00Z"}\n')
+        self.bridge("fetch", "--side", "codex")
+        self.bridge("fetch", "--side", "codex")
+        self.assertEqual([e["id"] for e in self.spool("codex")], ["m1", "partial"])
+        self.assertNotIn("duplicate_ignored", self.events("codex"))
 
     def test_duplicate_message_id_is_ignored(self):
         self.deliver("me-codex", "m1", "hello")
@@ -381,7 +405,7 @@ class InstallScriptTest(HelperTestCase):
         (self.home / ".codex").mkdir()
         (self.home / ".codex" / "config.toml").write_text('model = "x"\n')
         args = ["--claude-identity", "~/.retalk/a", "--claude-peer", "a-codex", "--codex-identity", "~/.retalk/b",
-                "--codex-peer", "b-claude", "--hook-cwd", str(self.tmp / "work")]
+                "--codex-peer", "b-claude", "--hook-cwd", str(self.tmp / "work"), "--codex-inbox", "~/inbox.ndjson"]
         first = self.script("install.sh", *args)
         self.assertEqual(first.returncode, 0, first.stderr)
         second = self.script("install.sh", *args)
@@ -396,6 +420,9 @@ class InstallScriptTest(HelperTestCase):
         config = json.loads((self.home / ".config" / "retalk-bridge" / "config.json").read_text())
         self.assertEqual(config["sides"]["codex"]["peer"], "b-claude")
         self.assertEqual(config["sides"]["claude"]["hook_cwds"], [str(self.tmp / "work")])
+        self.assertEqual(config["sides"]["codex"]["inbox_file"], "~/inbox.ndjson")
+        self.assertRegex(config["sides"]["codex"]["inbox_since"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
+        self.assertNotIn("inbox_file", config["sides"]["claude"])
         self.assertEqual(oct((self.home / ".config" / "retalk-bridge" / "config.json").stat().st_mode & 0o777), "0o600")
         self.assertTrue((self.home / ".local" / "share" / "retalk-bridge" / "retalk_bridge.py").exists())
         gone = self.script("uninstall.sh")
