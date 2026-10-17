@@ -154,7 +154,8 @@ class Policy {
 		The reset time a limit message names, as Unix seconds, or 0.
 		Understands an epoch (`"resets_at": 1773853402`), a duration
 		(`Resets in 2h40m11s`, `try again in 15 minutes`) and a local clock time
-		(`resets 5:20pm`, `try again at 4:12 PM`); a clock time already past
+		(`resets 5:20pm`, `try again at 4:12 PM`), or a date and time
+		(`try again at Oct 17th, 2026 2:07 AM`, `resets Oct 3, 12pm`); a clock time already past
 		today means tomorrow. A trailing zone name is ignored: the local zone is used.
 	**/
 	public static function parseReset(text:String, now:Float):Float {
@@ -166,6 +167,18 @@ class Policy {
 			var h = num(duration, 1), m = num(duration, 2), s = num(duration, 3);
 			if (h + m + s > 0)
 				return now + h * 3600 + m * 60 + s;
+		}
+		var dated = ~/(?:resets?|try again at)\s+(?:on\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+([0-9]{1,2})(?:st|nd|rd|th)?,?\s*(?:([0-9]{4}),?\s*)?(?:at\s+)?([0-9]{1,2})(?::([0-9]{2}))?\s*(am|pm)/i;
+		if (dated.match(text)) {
+			var month = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].indexOf(dated.matched(1).toLowerCase());
+			var hour = num(dated, 4) % 12;
+			if (dated.matched(6).toLowerCase() == "pm")
+				hour += 12;
+			var today = Date.fromTime(now * 1000);
+			var year = num(dated, 3) > 0 ? num(dated, 3) : today.getFullYear();
+			var at = new Date(year, month, num(dated, 2), hour, num(dated, 5), 0).getTime() / 1000;
+			// no year given and the date already passed: it means next year
+			return (num(dated, 3) == 0 && at < now - 86400) ? new Date(year + 1, month, num(dated, 2), hour, num(dated, 5), 0).getTime() / 1000 : at;
 		}
 		var clock = ~/(?:resets?|try again at)\s+([0-9]{1,2})(?::([0-9]{2}))?\s*(am|pm)/i;
 		if (clock.match(text)) {

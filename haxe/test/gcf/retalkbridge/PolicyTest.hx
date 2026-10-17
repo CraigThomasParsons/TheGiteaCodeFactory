@@ -111,4 +111,12 @@ class PolicyTest extends utest.Test {
 		Assert.equals("f1", kept[1].id);
 		Assert.equals(3, Policy.parseInbox(output, ["codex", "aa"], "").length);
 	}
+
+	function testParseResetWithDate() {
+		var codex = Policy.parseReset("You've hit your usage limit. ... or try again at Oct 17th, 2026 2:07 AM.", NOW);
+		var expected = new Date(2026, 9, 17, 2, 7, 0).getTime() / 1000;
+		Assert.equals(expected, codex);
+		var claude = Policy.parseReset("resets Oct 3, 12pm (America/Toronto)", new Date(2026, 9, 1, 8, 0, 0).getTime() / 1000);
+		Assert.equals(new Date(2026, 9, 3, 12, 0, 0).getTime() / 1000, claude);
+	}
 }

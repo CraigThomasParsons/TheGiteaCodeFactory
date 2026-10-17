@@ -1809,6 +1809,20 @@ class gcf_retalkbridge_Policy:
             s = gcf_retalkbridge_Policy.num(duration,3)
             if (((h + m) + s) > 0):
                 return (((now + ((h * 3600))) + ((m * 60))) + s)
+        dated = EReg("(?:resets?|try again at)\\s+(?:on\\s+)?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?\\s+([0-9]{1,2})(?:st|nd|rd|th)?,?\\s*(?:([0-9]{4}),?\\s*)?(?:at\\s+)?([0-9]{1,2})(?::([0-9]{2}))?\\s*(am|pm)","i")
+        dated.matchObj = python_lib_Re.search(dated.pattern,text)
+        if (dated.matchObj is not None):
+            month = python_internal_ArrayImpl.indexOf(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"],dated.matchObj.group(1).lower(),None)
+            hour = HxOverrides.mod(gcf_retalkbridge_Policy.num(dated,4), 12)
+            if (dated.matchObj.group(6).lower() == "pm"):
+                hour = (hour + 12)
+            today = Date.fromTime((now * 1000))
+            year = (gcf_retalkbridge_Policy.num(dated,3) if ((gcf_retalkbridge_Policy.num(dated,3) > 0)) else today.date.year)
+            at = ((Date(year,month,gcf_retalkbridge_Policy.num(dated,2),hour,gcf_retalkbridge_Policy.num(dated,5),0).date.timestamp() * 1000) / 1000)
+            if ((gcf_retalkbridge_Policy.num(dated,3) == 0) and ((at < ((now - 86400))))):
+                return ((Date((year + 1),month,gcf_retalkbridge_Policy.num(dated,2),hour,gcf_retalkbridge_Policy.num(dated,5),0).date.timestamp() * 1000) / 1000)
+            else:
+                return at
         clock = EReg("(?:resets?|try again at)\\s+([0-9]{1,2})(?::([0-9]{2}))?\\s*(am|pm)","i")
         clock.matchObj = python_lib_Re.search(clock.pattern,text)
         if (clock.matchObj is not None):

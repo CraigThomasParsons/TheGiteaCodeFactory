@@ -218,6 +218,17 @@ class RetalkBridgeTest(HelperTestCase):
         until = self.health("codex")["benched_until"]
         self.assertAlmostEqual(until, before + 2 * 3600 + 5 * 60, delta=30)
 
+    def test_codex_limit_with_dated_reset(self):
+        (self.fake / "codex.reply").write_text("")
+        (self.fake / "codex.mode").write_text("limit")
+        script = (self.bin / "codex").read_text().replace("Try again in 2h 5m.", "try again at Oct 17th, 2099 2:07 AM.")
+        (self.bin / "codex").write_text(script)
+        self.deliver("me-codex", "m1", "ping")
+        self.bridge("tick", "--side", "codex")
+        import datetime
+        expected = datetime.datetime(2099, 10, 17, 2, 7).timestamp()
+        self.assertAlmostEqual(self.health("codex")["benched_until"], expected, delta=1)
+
     def test_codex_precheck_benches_without_calling_model(self):
         day = self.tmp / "codex-sessions" / "2026" / "10" / "16"
         day.mkdir(parents=True)
