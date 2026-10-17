@@ -1,0 +1,4 @@
+# retalk bridge: automatic agent-to-agent messaging over retalk (skills/retalk-bridge).
+--class-path haxe/src
+--main gcf.retalkbridge.Main
+--python skills/retalk-bridge/scripts/retalk_bridge.py

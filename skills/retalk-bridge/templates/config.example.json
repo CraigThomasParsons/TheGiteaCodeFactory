@@ -1,0 +1,32 @@
+{
+  "retalk": "~/.local/bin/retalk",
+  "state_dir": "~/.local/state/retalk-bridge",
+  "max_hops": 1,
+  "max_resumes_per_hour": 2,
+  "max_attempts_per_message": 2,
+  "circuit_breaker_failures": 3,
+  "circuit_open_minutes": 60,
+  "default_backoff_minutes": 30,
+  "resume_timeout_seconds": 600,
+  "sides": {
+    "claude": {
+      "cli": "claude",
+      "binary": "~/.local/bin/claude",
+      "identity_dir": "~/.retalk/alice-claude",
+      "peer": "alice-codex",
+      "auto_resume": true,
+      "resume_target": "bridge",
+      "hook_cwds": [],
+      "extra_args": ["--disallowedTools", "Bash,Edit,Write,NotebookEdit"]
+    },
+    "codex": {
+      "cli": "codex",
+      "binary": "~/.local/bin/codex",
+      "identity_dir": "~/.retalk/alice-codex",
+      "peer": "alice-claude",
+      "auto_resume": true,
+      "resume_target": "bridge",
+      "hook_cwds": []
+    }
+  }
+}
