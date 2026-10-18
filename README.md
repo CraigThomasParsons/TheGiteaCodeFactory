@@ -16,6 +16,38 @@ done only when its acceptance criteria are proven on merged code.
 New to the vocabulary (slice, oracle, parity, claim, receipt, bench)? Keep the
 [glossary](docs/glossary.md) open while you read.
 
+## Planned evolution: workers pull work
+
+The current coordinator assigns or hands jobs to workers. The next major feature
+will invert that relationship: healthy provider workers will advertise their
+capabilities and **pull** compatible jobs only when they are actually available.
+This avoids dispatching work to a provider whose login, quota, billing path or
+requested model is unavailable.
+
+The planned design includes:
+
+- worker-advertised provider, model, account mode, capabilities and health;
+- atomic job claims with expiring leases, heartbeats and monotonically
+  increasing epoch/fencing tokens;
+- rejection of stale heartbeats and results after a job has been reassigned;
+- safe checkpoint handoff to another compatible provider;
+- circuit breakers and backoff for quota and rate-limit failures;
+- receipts that record the requested and actual model without recording
+  credentials; and
+- a deterministic, non-LLM **doctor** that distinguishes authentication,
+  billing, quota, missing-tool, timeout and transport failures from genuine
+  code-review findings.
+
+Infrastructure failures must not become `review:needs-human`. That label is for
+work requiring human judgment, not a worker that could not start. The existing
+push dispatcher will remain available as a rollback path until the pull-based
+workflow is proven through worker-death, duplicate-claim, stale-completion,
+credential-conflict and provider-recovery tests.
+
+This is planned work, not current functionality. Track the design, acceptance
+criteria and open decisions in
+[Feature #2: pull-based multi-provider worker pool and non-LLM doctor](https://github.com/CraigThomasParsons/TheGiteaCodeFactory/issues/2).
+
 ## Intended workflow and included components
 
 - **Turn feature descriptions into executable contracts.** Acceptance criteria
