@@ -23,6 +23,10 @@ Process at most two enrolled PRs, up to three repair rounds each.
 Project auto-merge is enabled; merge only after the receipt and current checks pass.
 ```
 
+To start the loop when a PR opens, gets a new commit or is labelled
+`review:requested` or `review:findings`, rather than on request or a timer, add the
+event trigger described in [event-triggers.md](event-triggers.md).
+
 For review only, invoke `$pr-review-loop`; for repair only, `$pr-resolve-loop`.
 These are agent workflows, not names of shell executables. The documented command
 for a deterministic merge check is:
@@ -38,11 +42,13 @@ controller adds `--execute` only after verifying project auto-merge policy.
 The script does not load the project policy JSON or infer user authorization.
 
 Flow: `review:requested` → independent review → `review:findings` → repair →
-`review:resolved` → `review:requested` → current head clear (`review:clear`) → merge.
+`review:resolved` → `review:requested` → current head clean (`review:clean`) → merge.
 Unresolved decisions use `review:needs-human`. Remove only obsolete state labels.
 The labels are `review:requested`, `review:in-progress`, `review:findings`,
-`review:resolving`, `review:resolved`, `review:clear` and `review:needs-human`;
-create them in each enrolled repository. If Moonlighter is running, its PR
+`review:resolving`, `review:resolved`, `review:clean` and `review:needs-human`;
+create them in each enrolled repository. `review:clean` is the canonical name. The
+merge gate also accepts the older `review:clear` during a transition, so
+repositories labelled before the rename keep merging; do not apply both. If Moonlighter is running, its PR
 labeller adds `review:requested` to new PRs and strips a stale verdict when the
 head moves on ([details](../moonlighter/README.md#review-labels-and-markers)).
 

@@ -1,0 +1,21 @@
+# gitea-runner-factory-host.service template v1
+# systemd user unit rendered by scripts/setup-host-runner.sh, which replaces
+# @RUNNER_BIN@, @CONFIG@ and @STATE_DIR@ with absolute paths.
+[Unit]
+Description=Gitea Actions runner for the factory-host label (host mode)
+Documentation=https://docs.gitea.com/usage/actions/act-runner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@STATE_DIR@
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=@RUNNER_BIN@ daemon --config @CONFIG@
+Restart=on-failure
+RestartSec=10
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

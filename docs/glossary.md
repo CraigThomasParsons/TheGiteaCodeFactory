@@ -52,6 +52,9 @@ whether you can get it and what to substitute if you cannot.
 | **Receipt** | A private JSON record of what actually happened: revisions, commands, exit codes, review results. Controllers verify receipts against logs and Git/server state; a receipt is not proof by itself. |
 | **Current head** | The PR's latest commit. A review or test result only counts for the exact head it ran against; a new commit invalidates it. |
 | **Park** | Stop work on a job with a recorded reason and retry condition, instead of failing it or looping. |
+| **Event trigger** | A Gitea Actions job that tells the worker a PR changed, so the review loop starts without waiting for a timer. See [event-triggers.md](event-triggers.md). |
+| **`pull_request_target`** | An Actions event for PRs that runs the workflow file from the target branch rather than from the PR, so a PR cannot alter the job that reacts to it. |
+| **Host-mode runner / `factory-host`** | An Actions runner whose jobs run directly as a user process on its computer, with no container. `factory-host` is the label of the one the event trigger uses. Not an isolation boundary. |
 | **Standards / Spec review** | The two independent review axes: does the code follow the repository's standards, and does it do what the issue asked. |
 
 ## Migration terms

@@ -11,7 +11,7 @@ Set `GITEA_SERVER_URL` and `GITEA_TOKEN` or `GITEA_TOKEN_FILE` for the selected 
 
 Process at most two PRs and three repair rounds per PR, unless a smaller task bound applies. Hold one controller lock; skip drafts, bots and work owned by another controller. Paginate discovery to an empty page. Read `../pr-review-loop/SKILL.md` and `../pr-resolve-loop/SKILL.md` for review and repair. New head/base invalidates prior clearance.
 
-After an independent clean Standards/Spec review and passing required validation, write the receipt outside the PR checkout. Derive commands and required contexts from trusted target-branch policy and server protection. Review output and `review:clear` are necessary but not sufficient. Model approval alone is advisory.
+After an independent clean Standards/Spec review and passing required validation, write the receipt outside the PR checkout. Derive commands and required contexts from trusted target-branch policy and server protection. Review output and `review:clean` are necessary but not sufficient; the merge helper also accepts the transitional `review:clear`. Model approval alone is advisory.
 
 Run `python3 scripts/gitea_merge.py --repo <owner/repo> --pr <n> --method <configured-method> --receipt <receipt.json>` for read-only eligibility. Add `--execute` only when the operator enabled auto-merge for this repository and invoked the loop with that authority. The helper's flag is the execution boundary; it does not read `.factory/project.json` itself. Never force merge, bypass required checks or delete branches. Verify the merged SHA before recording completion.
 

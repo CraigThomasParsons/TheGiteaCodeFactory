@@ -37,6 +37,9 @@ For each active project:
    with the project's tests; it produces the status check the merge gate waits for.
    Create the review-state labels and enable branch protection with that check
    required (see [pr-loops.md](pr-loops.md#status-checks-the-merge-gate-waits-for)).
+   Optionally copy `templates/pr-review-trigger.yml` too, so PR events start the
+   review loop; it needs the worker's `factory-host` runner
+   ([event-triggers.md](event-triggers.md)).
 7. Run the Actions smoke, then a controlled BDD → implementation → findings → repair
    → independent re-review canary. Verify old head clearance is rejected.
 8. Enable `auto_merge` only after the operator has granted that project scope and the

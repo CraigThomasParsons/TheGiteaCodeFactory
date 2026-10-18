@@ -104,13 +104,13 @@ This is the part most people adopt first, and it works without the rest.
    for these PRs until the [integration gap](docs/moonlighter.md#known-gaps-before-a-multi-computer-rollout) is resolved.
 2. The review loop picks it up, runs the `code-review` skill (independent
    Standards and Spec reviews) and posts the result as a PR comment. The label
-   becomes `review:findings`, or `review:clear` only after there is nothing to fix
+   becomes `review:findings`, or `review:clean` only after there is nothing to fix
    and required validation has passed for the reviewed revision.
 3. The resolve loop picks up `review:findings` PRs, fixes the findings on the PR's
    branch, reruns the tests, pushes and sends it back to `review:requested`.
 4. Steps 2–3 repeat on each new head, up to three rounds. A PR that still isn't
    clear, or needs a human decision, is parked as `review:needs-human`.
-5. Once a PR is `review:clear` *and* its tests have passed on that exact commit,
+5. Once a PR is `review:clean` *and* its tests have passed on that exact commit,
    the merge gate merges it into the target branch (for example `develop`) and
    verifies the merge.
 
@@ -120,6 +120,7 @@ This is the part most people adopt first, and it works without the rest.
 |---|---|---|
 | The project's tests (`pr-validation.yml`) | The review and resolve loops | Repository registration and the PR labeller |
 | The advisory AI review (`pr-ai-review.yml`) | The implementation pipeline (tmux sessions) | The job board, claims and dashboard |
+| The optional review trigger (`pr-review-trigger.yml`, on the worker's `factory-host` runner; [guide](docs/event-triggers.md)) | | |
 | | The coach and merge gate | Schedule windows for when workers may start |
 
 The agent work stays off Actions on purpose. Agent sessions run for a long time,

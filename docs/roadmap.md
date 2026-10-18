@@ -33,8 +33,10 @@ through it:
 
 - [ ] Actions smoke test and `pr-validation.yml` run on the bundled runner
 - [ ] A PR with a deliberate defect goes `review:requested → review:findings →
-      review:resolved → review:requested → review:clear` and merges
-- [ ] Pushing a new commit after `review:clear` blocks the merge (stale-head rejection)
+      review:resolved → review:requested → review:clean` and merges
+- [ ] Pushing a new commit after `review:clean` blocks the merge (stale-head rejection)
+- [ ] The event trigger ([event-triggers.md](event-triggers.md)) queues the PR on
+      open, push and `review:requested` through a live `factory-host` runner
 - [ ] A failing test blocks the merge even when the review is clear
 - [ ] Record the run in [validation.md](validation.md)
 
@@ -150,7 +152,7 @@ The countermeasure treats the model that actually answered as evidence:
   heartbeat treats the worker as `wrapping_up` (or `sick` if it can no longer
   write a useful handover), benches the account until its quota window resets,
   and reassigns.
-- The merge gate refuses `review:clear` when either review axis ran on a model
+- The merge gate refuses `review:clean` when either review axis ran on a model
   below the project's minimum for `REVIEW`.
 
 ### Layer C: continuous checkpoints ("Rob leaves notes through the day")

@@ -77,6 +77,14 @@ selected operation. It is distinct from the runner registration token and from
 the Moonlighter worker token. Agent login remains on the worker host; Compose does
 not log in to Codex, Claude, Gemini or Paperclip.
 
+## Host runner for event triggers
+
+The optional PR event trigger needs a second runner, labelled `factory-host`, that
+runs jobs directly on the worker computer instead of in a container.
+`scripts/setup-host-runner.sh` renders its config and systemd user unit, registers
+it and checks it; see [event-triggers.md](event-triggers.md). It does not touch the
+Compose runner or any other runner.
+
 ## Changing the kit's helper scripts
 
 Running the factory needs no Haxe. If you change the kit itself, its helper

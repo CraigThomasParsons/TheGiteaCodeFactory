@@ -52,6 +52,7 @@ that belong to the delivery and testing workflow are included.
 | `scripts/install-haxe.sh` | `[--ci \| --system] [--libs-only] [--prefix DIR]`; installs the pinned Haxe compiler and libraries with checksum verification; prints `export` lines | Bash, curl, tar, Python (to unpack libraries) |
 | `scripts/build-haxe.sh` | `[--out-root DIR] [build files]`; regenerates the committed files built from `haxe/` | Bash, Haxe 4.3.7 |
 | `scripts/check-haxe.sh` | Drift check of generated files, toolchain proof and utest suites; called by check-ci.sh; fails without Haxe unless `CHECK_SKIP_HAXE=1` | Bash, Haxe 4.3.7, Python, Node |
+| `scripts/setup-host-runner.sh` | `render/register/enable/doctor [--dry-run]`; sets up the `factory-host` host-mode runner as a systemd user service; token only by file or environment ([guide](event-triggers.md)) | Bash, `gitea-runner`, systemd user session |
 | `scripts/coach.py` | `--config --packet --event --state --output`; benches account and writes handoff packet, no launch | Python, Linux advisory locks |
 | `scripts/parity.py` | Four report paths: oracle twice, port twice; blocks red or unequal outcomes | Python |
 | `scripts/reviewer/ai_pr_reviewer.js` | Gitea/project/provider environment; posts advisory review | Node 22+, Gitea token and provider access |
