@@ -138,4 +138,18 @@ class PolicyTest extends utest.Test {
 		var claude = Policy.parseReset("resets Oct 3, 12pm (America/Toronto)", new Date(2026, 9, 1, 8, 0, 0).getTime() / 1000);
 		Assert.equals(new Date(2026, 9, 3, 12, 0, 0).getTime() / 1000, claude);
 	}
+
+	function testDisabledProviders() {
+		Assert.same([], Policy.disabledProviders(null, null).names);
+		Assert.same(["claude", "codex"], Policy.disabledProviders(null, '{"disabled":["Claude"," codex ","claude"]}').names);
+		Assert.same(["codex"], Policy.disabledProviders("codex", '{"disabled":["claude"]}').names);
+		Assert.same([], Policy.disabledProviders("", '{"disabled":["claude"]}').names);
+		Assert.same(["a", "b"], Policy.disabledProviders(" a,,B ", null).names);
+		for (bad in ["{not json", "[]", '{"disabled":"codex"}', '{"disabled":[1]}', "{}"]) {
+			var result = Policy.disabledProviders(null, bad);
+			Assert.same([], result.names);
+			Assert.notNull(result.warning);
+		}
+		Assert.isNull(Policy.disabledProviders(null, '{"disabled":[]}').warning);
+	}
 }

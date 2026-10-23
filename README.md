@@ -272,6 +272,7 @@ bash scripts/check.sh
 7. [PR loops](docs/pr-loops.md): review, repair, merge gate, CI reviewer
 8. [Testing](docs/testing.md): BDD, TDD and parity
 9. [Coach](docs/coach.md): rate-limit bench and handoff
+   - [Provider off switch](docs/provider-off-switch.md): stop helpers from starting Claude Code or Codex on a computer
 10. [Paperclip field notes](docs/paperclip-adapters.md): why a supervisor's "succeeded" can't be trusted
 11. [Coordinator](docs/moonlighter.md): queue and claim contract
 12. [Releases](docs/releases.md): GitHub push and draft release

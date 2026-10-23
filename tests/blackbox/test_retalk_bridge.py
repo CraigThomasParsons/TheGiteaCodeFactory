@@ -426,6 +426,50 @@ class RetalkBridgeTest(HelperTestCase):
         self.assertEqual(self.spool("claude")[0]["status"], "delivered")
         self.assertEqual(self.calls("claude"), [])
 
+    # -- provider off switch ---------------------------------------------
+    def switch_file(self, text):
+        path = self.home / ".config" / "gcf" / "providers.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+
+    def test_disabled_provider_is_never_woken_and_logs_once(self):
+        self.switch_file(json.dumps({"disabled": ["codex"]}))
+        self.deliver("me-codex", "m1", "ping")
+        self.bridge("tick", "--side", "codex")
+        self.bridge("tick", "--side", "codex")
+        self.assertEqual(self.calls("codex"), [])
+        self.assertEqual(self.events("codex"), ["skipped_provider_disabled"])
+        self.assertTrue((self.fake / "me-codex.inbox").exists(), "mailbox must not be drained while disabled")
+        self.switch_file(json.dumps({"disabled": []}))
+        self.bridge("tick", "--side", "codex")
+        self.assertEqual(len(self.calls("codex")), 1)
+        self.assertEqual(self.events("codex")[:2], ["skipped_provider_disabled", "provider_enabled"])
+
+    def test_env_overrides_the_file(self):
+        self.switch_file(json.dumps({"disabled": ["codex"]}))
+        self.deliver("me-codex", "m1", "ping")
+        self.bridge("tick", "--side", "codex", extra_env={"GCF_DISABLED_PROVIDERS": ""})
+        self.assertEqual(len(self.calls("codex")), 1)
+        self.deliver("me-claude", "m2", "ping")
+        self.bridge("tick", "--side", "claude", extra_env={"GCF_DISABLED_PROVIDERS": " Claude , codex"})
+        self.assertEqual(self.calls("claude"), [])
+        self.assertIn("skipped_provider_disabled", self.events("claude"))
+
+    def test_invalid_switch_file_warns_and_disables_nothing(self):
+        self.switch_file("{not json")
+        self.deliver("me-codex", "m1", "ping")
+        result = self.bridge("tick", "--side", "codex")
+        self.assertIn("ignoring", result.stderr)
+        self.assertEqual(len(self.calls("codex")), 1)
+
+    def test_hook_skips_a_disabled_provider(self):
+        self.switch_file(json.dumps({"disabled": ["claude"]}))
+        self.deliver("me-claude", "m1", "hello")
+        result = self.hook("claude", "UserPromptSubmit", self.live)
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
+        self.assertTrue((self.fake / "me-claude.inbox").exists())
+        self.assertEqual(self.events("claude"), ["skipped_provider_disabled"])
+
     def test_hook_outside_allowed_dirs_does_nothing(self):
         self.deliver("me-claude", "m1", "hello")
         other = self.tmp / "elsewhere"

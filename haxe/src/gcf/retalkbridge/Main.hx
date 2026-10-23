@@ -201,6 +201,23 @@ class Main {
 		return Syntax.code("__import__('datetime').datetime.now().astimezone().isoformat(timespec='seconds')");
 	}
 
+	/**
+		True when the provider off switch names this side's CLI. See
+		docs/provider-off-switch.md: GCF_DISABLED_PROVIDERS overrides
+		~/.config/gcf/providers.json; a bad file warns and disables nothing.
+	**/
+	static function providerDisabled(conf:Dynamic):Bool {
+		var path = home() + "/.config/gcf/providers.json";
+		var text:Null<String> = null;
+		if (Sys.getEnv("GCF_DISABLED_PROVIDERS") == null && FileSystem.exists(path))
+			text = try File.getContent(path) catch (e:Dynamic) "";
+		var result = Policy.disabledProviders(Sys.getEnv("GCF_DISABLED_PROVIDERS"), text);
+		if (result.warning != null)
+			Sys.stderr().writeString("retalk-bridge: ignoring " + path + ": " + result.warning + "\n");
+		var cli:String = conf.cli == null ? "" : Std.string(conf.cli).toLowerCase();
+		return result.names.indexOf(cli) >= 0;
+	}
+
 	/** Append one event to the side's log (JSON lines, owner-only). **/
 	static function log(side:String, event:String, fields:Dynamic):Void {
 		var record:Dynamic = {at: stamp(), side: side, event: event};
@@ -393,6 +410,10 @@ class Main {
 		var cwd:String = event.cwd == null ? Sys.getCwd() : event.cwd;
 		if (!hookAllowed(conf, cwd))
 			return;
+		if (providerDisabled(conf)) {
+			log(side, "skipped_provider_disabled", {cli: conf.cli, hook: event.hook_event_name});
+			return; // messages stay in the spool until the provider is switched back on
+		}
 		var name:String = event.hook_event_name == null ? "" : event.hook_event_name;
 		writeJson(stateDir(side) + "/session.json", {
 			session_id: event.session_id,
@@ -456,6 +477,20 @@ class Main {
 		var conf = sideConfig(side);
 		if (conf.auto_resume != true)
 			return;
+		// Checked before fetch so a disabled side starts nothing. The timer runs every
+		// minute, so the skip is logged once when the switch turns on, not per tick.
+		var marker = stateDir(side) + "/provider_disabled";
+		if (providerDisabled(conf)) {
+			if (!FileSystem.exists(marker)) {
+				File.saveContent(marker, stamp() + "\n");
+				log(side, "skipped_provider_disabled", {cli: conf.cli});
+			}
+			return;
+		}
+		if (FileSystem.exists(marker)) {
+			FileSystem.deleteFile(marker);
+			log(side, "provider_enabled", {cli: conf.cli});
+		}
 		try fetch(side) catch (e:Dynamic) log(side, "fetch_failed", {detail: Std.string(e)});
 		var dir = stateDir(side);
 		var waiting = 0;

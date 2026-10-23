@@ -477,7 +477,7 @@ StringTools._hx_class = StringTools
 class sys_FileSystem:
     _hx_class_name = "sys.FileSystem"
     __slots__ = ()
-    _hx_statics = ["exists", "stat", "rename", "createDirectory"]
+    _hx_statics = ["exists", "stat", "rename", "createDirectory", "deleteFile"]
 
     @staticmethod
     def exists(path):
@@ -495,6 +495,10 @@ class sys_FileSystem:
     @staticmethod
     def createDirectory(path):
         python_lib_Os.makedirs(path,511,True)
+
+    @staticmethod
+    def deleteFile(path):
+        python_lib_Os.remove(path)
 sys_FileSystem._hx_class = sys_FileSystem
 
 
@@ -704,7 +708,7 @@ gcf_retalkbridge_Failure._hx_class = gcf_retalkbridge_Failure
 class gcf_retalkbridge_Main:
     _hx_class_name = "gcf.retalkbridge.Main"
     __slots__ = ()
-    _hx_statics = ["config", "configPath", "main", "USAGE", "usage", "parseOptions", "home", "expand", "loadConfig", "setting", "sideNames", "sideConfig", "requireSide", "stateDir", "readJson", "writeJson", "now", "stamp", "log", "withLock", "run", "spool", "saveSpool", "fetch", "readInbox", "firstLine", "toMessage", "send", "hookAllowed", "hook", "scriptPath", "tick", "runnable", "claim", "targetSession", "resume", "countFailure", "clip", "updateEntries", "codexExhaustedUntil", "status", "installHooks", "mergeHookFile", "isOurs"]
+    _hx_statics = ["config", "configPath", "main", "USAGE", "usage", "parseOptions", "home", "expand", "loadConfig", "setting", "sideNames", "sideConfig", "requireSide", "stateDir", "readJson", "writeJson", "now", "stamp", "providerDisabled", "log", "withLock", "run", "spool", "saveSpool", "fetch", "readInbox", "firstLine", "toMessage", "send", "hookAllowed", "hook", "scriptPath", "tick", "runnable", "claim", "targetSession", "resume", "countFailure", "clip", "updateEntries", "codexExhaustedUntil", "status", "installHooks", "mergeHookFile", "isOurs"]
     config = None
     configPath = None
 
@@ -1035,6 +1039,22 @@ class gcf_retalkbridge_Main:
         return __import__('datetime').datetime.now().astimezone().isoformat(timespec='seconds')
 
     @staticmethod
+    def providerDisabled(conf):
+        path = (HxOverrides.stringOrNull(gcf_retalkbridge_Main.home()) + "/.config/gcf/providers.json")
+        text = None
+        if ((Sys.getEnv("GCF_DISABLED_PROVIDERS") is None) and sys_FileSystem.exists(path)):
+            try:
+                text = sys_io_File.getContent(path)
+            except BaseException as _g:
+                None
+                text = ""
+        result = gcf_retalkbridge_Policy.disabledProviders(Sys.getEnv("GCF_DISABLED_PROVIDERS"),text)
+        if (result.warning is not None):
+            Sys.stderr().writeString((((("retalk-bridge: ignoring " + ("null" if path is None else path)) + ": ") + HxOverrides.stringOrNull(result.warning)) + "\n"))
+        cli = ("" if ((Reflect.field(conf,"cli") is None)) else Std.string(Reflect.field(conf,"cli")).lower())
+        return (python_internal_ArrayImpl.indexOf(result.names,cli,None) >= 0)
+
+    @staticmethod
     def log(side,event,fields):
         record = _hx_AnonObject({'at': gcf_retalkbridge_Main.stamp(), 'side': side, 'event': event})
         if (fields is not None):
@@ -1245,6 +1265,9 @@ class gcf_retalkbridge_Main:
         cwd = (Sys.getCwd() if ((Reflect.field(event,"cwd") is None)) else Reflect.field(event,"cwd"))
         if (not gcf_retalkbridge_Main.hookAllowed(conf,cwd)):
             return
+        if gcf_retalkbridge_Main.providerDisabled(conf):
+            gcf_retalkbridge_Main.log(side,"skipped_provider_disabled",_hx_AnonObject({'cli': conf.cli, 'hook': Reflect.field(event,"hook_event_name")}))
+            return
         name = ("" if ((Reflect.field(event,"hook_event_name") is None)) else Reflect.field(event,"hook_event_name"))
         gcf_retalkbridge_Main.writeJson((HxOverrides.stringOrNull(gcf_retalkbridge_Main.stateDir(side)) + "/session.json"),_hx_AnonObject({'session_id': Reflect.field(event,"session_id"), 'cwd': cwd, 'event': name, 'at': gcf_retalkbridge_Main.now()}))
         if (name == "SessionEnd"):
@@ -1328,6 +1351,15 @@ class gcf_retalkbridge_Main:
         conf = gcf_retalkbridge_Main.sideConfig(side)
         if (conf.auto_resume != True):
             return
+        marker = (HxOverrides.stringOrNull(gcf_retalkbridge_Main.stateDir(side)) + "/provider_disabled")
+        if gcf_retalkbridge_Main.providerDisabled(conf):
+            if (not sys_FileSystem.exists(marker)):
+                sys_io_File.saveContent(marker,(HxOverrides.stringOrNull(gcf_retalkbridge_Main.stamp()) + "\n"))
+                gcf_retalkbridge_Main.log(side,"skipped_provider_disabled",_hx_AnonObject({'cli': conf.cli}))
+            return
+        if sys_FileSystem.exists(marker):
+            sys_FileSystem.deleteFile(marker)
+            gcf_retalkbridge_Main.log(side,"provider_enabled",_hx_AnonObject({'cli': conf.cli}))
         try:
             gcf_retalkbridge_Main.fetch(side)
         except BaseException as _g:
@@ -1761,7 +1793,7 @@ gcf_retalkbridge_Main._hx_class = gcf_retalkbridge_Main
 class gcf_retalkbridge_Policy:
     _hx_class_name = "gcf.retalkbridge.Policy"
     __slots__ = ()
-    _hx_statics = ["HOP_PREFIX", "NO_REPLY", "parseJson", "parseReceive", "parseInbox", "hopOf", "stripHop", "markHop", "shouldResume", "replyAllowed", "recentCount", "limitText", "limitNotice", "parseReset", "clockHour", "group", "num", "classifyClaude", "classifyCodex", "codexExhaustedUntil", "outcome", "firstLine", "resumePrompt", "hookContext", "isNoReply"]
+    _hx_statics = ["HOP_PREFIX", "NO_REPLY", "parseJson", "parseReceive", "parseInbox", "hopOf", "stripHop", "markHop", "shouldResume", "replyAllowed", "recentCount", "limitText", "limitNotice", "parseReset", "clockHour", "group", "num", "classifyClaude", "classifyCodex", "codexExhaustedUntil", "outcome", "firstLine", "resumePrompt", "hookContext", "disabledProviders", "addName", "isNoReply"]
 
     @staticmethod
     def parseJson(text):
@@ -2119,6 +2151,44 @@ class gcf_retalkbridge_Policy:
         elif (len(messages) > 0):
             lines.append((("The automatic reply limit for this exchange has been reached: reply only if the user asks you to, with: " + ("null" if sendCommand is None else sendCommand)) + " \"<your reply>\""))
         return "\n".join([python_Boot.toString1(x1,'') for x1 in lines])
+
+    @staticmethod
+    def disabledProviders(envValue,fileText):
+        names = []
+        if (envValue is not None):
+            _g = 0
+            _g1 = envValue.split(",")
+            while (_g < len(_g1)):
+                part = (_g1[_g] if _g >= 0 and _g < len(_g1) else None)
+                _g = (_g + 1)
+                gcf_retalkbridge_Policy.addName(names,part)
+            return _hx_AnonObject({'names': names, 'warning': None})
+        if (fileText is None):
+            return _hx_AnonObject({'names': names, 'warning': None})
+        parsed = None
+        try:
+            parsed = gcf_retalkbridge_Policy.parseJson(fileText)
+        except BaseException as _g:
+            None
+            parsed = None
+        _hx_list = (None if (((parsed is None) or Std.isOfType(parsed,list))) else Reflect.field(parsed,"disabled"))
+        if ((_hx_list is None) or (not Std.isOfType(_hx_list,list))):
+            return _hx_AnonObject({'names': [], 'warning': "expected a JSON object with a \"disabled\" list of provider names"})
+        _g = 0
+        _g1 = _hx_list
+        while (_g < len(_g1)):
+            item = (_g1[_g] if _g >= 0 and _g < len(_g1) else None)
+            _g = (_g + 1)
+            if (not Std.isOfType(item,str)):
+                return _hx_AnonObject({'names': [], 'warning': "every entry of \"disabled\" must be a string"})
+            gcf_retalkbridge_Policy.addName(names,item)
+        return _hx_AnonObject({'names': names, 'warning': None})
+
+    @staticmethod
+    def addName(names,raw):
+        name = StringTools.trim(raw).lower()
+        if ((name != "") and ((python_internal_ArrayImpl.indexOf(names,name,None) < 0))):
+            names.append(name)
 
     @staticmethod
     def isNoReply(reply):
