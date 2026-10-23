@@ -101,6 +101,9 @@ usage-limit message and `Try again in …`; generic `429`, `rate limit`,
 `resets 5:20pm`, `resets at 17:20` or with a date; a clock time without a date
 is taken in the local zone.
 
+To stop the bridge from starting or prompting one CLI on this computer without
+uninstalling it, use the [provider off switch](provider-off-switch.md).
+
 ## Install and remove
 
 Working directory: a checkout of this kit.

@@ -351,6 +351,42 @@ class Policy {
 		return lines.join("\n");
 	}
 
+	/**
+		Providers switched off by the provider off switch.
+
+		`envValue` is GCF_DISABLED_PROVIDERS (a comma list); when it is set, even
+		to an empty string, it replaces the file. `fileText` is the content of
+		~/.config/gcf/providers.json (`{"disabled": ["claude", "codex"]}`), or null
+		when the file is missing. An unreadable file disables nothing and returns
+		a warning instead. Names are trimmed and lower-cased.
+	**/
+	public static function disabledProviders(envValue:Null<String>, fileText:Null<String>):{names:Array<String>, warning:Null<String>} {
+		var names:Array<String> = [];
+		if (envValue != null) {
+			for (part in envValue.split(","))
+				addName(names, part);
+			return {names: names, warning: null};
+		}
+		if (fileText == null)
+			return {names: names, warning: null};
+		var parsed:Dynamic = try parseJson(fileText) catch (e:Dynamic) null;
+		var list:Dynamic = parsed == null || Std.isOfType(parsed, Array) ? null : Reflect.field(parsed, "disabled");
+		if (list == null || !Std.isOfType(list, Array))
+			return {names: [], warning: "expected a JSON object with a \"disabled\" list of provider names"};
+		for (item in (list : Array<Dynamic>)) {
+			if (!Std.isOfType(item, String))
+				return {names: [], warning: "every entry of \"disabled\" must be a string"};
+			addName(names, item);
+		}
+		return {names: names, warning: null};
+	}
+
+	static function addName(names:Array<String>, raw:String):Void {
+		var name = StringTools.trim(raw).toLowerCase();
+		if (name != "" && names.indexOf(name) < 0)
+			names.push(name);
+	}
+
 	/** True when a reply is the agreed "nothing to send" answer. **/
 	public static function isNoReply(reply:String):Bool {
 		var trimmed = StringTools.trim(reply);

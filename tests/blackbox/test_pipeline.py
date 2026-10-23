@@ -280,6 +280,36 @@ class SupervisorTest(PipelineTestCase):
         schema = json.loads((attempt / "schema.json").read_text())
         self.assertEqual(schema["properties"]["decision"]["enum"], ["continue", "awaiting_review", "blocked", "complete"])
 
+    def test_switched_off_codex_is_never_started(self):
+        cases = [({"GCF_DISABLED_PROVIDERS": "codex"}, None),
+                 ({}, json.dumps({"disabled": ["claude", "codex"]}))]
+        for env, file_text in cases:
+            with self.subTest(env=env):
+                switch = self.home / ".config" / "gcf" / "providers.json"
+                if file_text is None:
+                    switch.unlink(missing_ok=True)
+                else:
+                    switch.parent.mkdir(parents=True, exist_ok=True)
+                    switch.write_text(file_text)
+                for args in (("run", "--state", self.state, "--workspace", self.workspace),
+                             ("start", "--state", self.state, "--workspace", self.workspace)):
+                    result = run_tool("pipeline", list(args), env={**self.env(), **env})
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn("codex is switched off by the provider off switch", result.stderr)
+                self.assertEqual(self.codex_calls(), [])
+                self.assertEqual(self.tmux_calls(), [])
+                self.assertFalse(self.state.exists())
+
+    def test_invalid_switch_file_warns_and_runs(self):
+        switch = self.home / ".config" / "gcf" / "providers.json"
+        switch.parent.mkdir(parents=True)
+        switch.write_text('{"disabled": "codex"}')
+        self.codex_reply({"decision": "awaiting_review", "reason": "PR 9 is ready"})
+        result = self.pipeline("run", "--state", self.state, "--workspace", self.workspace)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("ignoring", result.stderr)
+        self.assertEqual(len(self.codex_calls()), 1)
+
     def test_run_continues_until_a_stopping_decision(self):
         self.codex_reply({"decision": "continue", "reason": "dispatched"}, index=0)
         self.codex_reply({"decision": "complete", "reason": "all done"}, index=1)

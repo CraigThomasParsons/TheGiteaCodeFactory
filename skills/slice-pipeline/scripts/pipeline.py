@@ -72,6 +72,7 @@ def validate(value,spec):
     if 'enum' in spec and value not in spec['enum']: raise ValueError('Invalid state')
 
 def execute(workspace,prompt,directory,kind):
+    require_provider()  # re-checked per attempt so a running supervisor stops before its next tick
     directory.mkdir(parents=True,exist_ok=False,mode=0o700)
     spec=TICK if kind=='tick' else RECEIPT
     atomic(directory/'schema.json',spec)
@@ -98,6 +99,32 @@ def execute(workspace,prompt,directory,kind):
         except (OSError,ValueError,TypeError) as e: result['error']='Invalid or missing response: '+str(e)
     atomic(directory/'result.json',result)
     return result
+
+PROVIDER='codex'  # the only agent CLI this driver starts
+
+def disabled_providers():
+    """Provider off switch (docs/provider-off-switch.md).
+
+    GCF_DISABLED_PROVIDERS (comma list) wins when set, even if empty; otherwise
+    ~/.config/gcf/providers.json {"disabled": [...]}. A missing file disables
+    nothing; an invalid one warns on stderr and disables nothing."""
+    env=os.environ.get('GCF_DISABLED_PROVIDERS')
+    if env is not None:
+        return {n.strip().lower() for n in env.split(',') if n.strip()}
+    path=Path.home()/'.config/gcf/providers.json'
+    if not path.exists(): return set()
+    try:
+        value=json.loads(path.read_text())
+        names=value['disabled'] if isinstance(value,dict) else None
+        if not isinstance(names,list) or not all(isinstance(n,str) for n in names): raise ValueError('expected {"disabled": [provider names]}')
+    except (OSError,ValueError,KeyError) as e:
+        print(f'slice-pipeline: ignoring {path}: {e}',file=sys.stderr); return set()
+    return {n.strip().lower() for n in names if n.strip()}
+
+def require_provider():
+    if PROVIDER in disabled_providers():
+        raise ValueError(f'{PROVIDER} is switched off by the provider off switch (GCF_DISABLED_PROVIDERS or ~/.config/gcf/providers.json); '
+                         'nothing was started. Remove it from the list to run the pipeline.')
 
 def name(state): return 'slice-'+hashlib.sha256(str(state.resolve()).encode()).hexdigest()[:12]
 def run(state,interval,workspace=None):
@@ -151,6 +178,7 @@ def main():
         a=sub.add_parser(action); a.add_argument('--state',type=Path,required=True); a.add_argument('--interval',type=int,default=60); a.add_argument('--workspace',type=Path)
     a=sub.add_parser('phase'); a.add_argument('--phase',choices=list(PHASE_SKILLS),required=True); a.add_argument('--worktree',type=Path,required=True); a.add_argument('--prompt',type=Path,required=True); a.add_argument('--result',type=Path,required=True)
     a=p.parse_args()
+    if a.cmd!='status': require_provider()
     if a.cmd=='phase':
         target=a.result.resolve(); target.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
         # One OS lock per worktree prevents simultaneous adapters from writing it.
