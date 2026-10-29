@@ -12,6 +12,7 @@ universal rules.
 | [javascript_node_style.md](javascript_node_style.md), [ts_node_style.md](ts_node_style.md) | Node.js and TypeScript tooling |
 | [typescript_quality_architecture.md](typescript_quality_architecture.md), [unicode_and_hygiene_standards.md](unicode_and_hygiene_standards.md) | The game's TypeScript front end: how lint, type-check and hygiene checks are split up and rolled out |
 | [golang_style.md](golang_style.md) | Go services |
+| [haxe_style.md](haxe_style.md) | This kit's Haxe helper sources; written for this repository, not an example copy |
 
 To use one, copy it into your project's `docs/style/`, keep the rules you agree
 with and replace project names, paths and vocabulary. The advisory reviewer reads
